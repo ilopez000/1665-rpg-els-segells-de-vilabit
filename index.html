@@ -1,0 +1,1465 @@
+<title>Els Segells de Vilabit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Món únic i deliberat: una vila de píxels vista de nit des d'una consola. Tema fosc fix. */
+:root {
+  --night: #171a33;       /* fons de la pàgina */
+  --panel: #232848;       /* marcs i panells */
+  --panel-2: #2f365e;     /* fons d'elements dins del panell */
+  --line: #4b5488;        /* vores */
+  --paper: #fff6e3;       /* text principal */
+  --muted: #b9bde0;       /* text secundari */
+  --gold: #ffcc4d;        /* segells, XP, focus */
+  --red: #e1211d;         /* accent del centre */
+  --ok: #4fd18b;
+  --bad: #ff7466;
+  --sel: #6fb7ff;
+  --f-display: "Pixelify Sans", "Courier New", monospace;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--night); color: var(--paper); font-family: var(--f-body); font-size: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 8px; box-sizing: border-box; overflow: hidden;
+}
+* { box-sizing: border-box; }
+button { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+#app { height: 100%; display: flex; flex-direction: column; gap: 8px; max-width: 1200px; margin: 0 auto; }
+
+/* HUD */
+.hud { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--panel); border: 2px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 18px; letter-spacing: .04em; color: var(--gold); white-space: nowrap; }
+.brand small { color: var(--muted); font-weight: 500; font-size: 12px; margin-left: 6px; letter-spacing: .06em; }
+.seals { display: flex; gap: 4px; }
+.seal { width: 30px; height: 30px; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; font-family: var(--f-display); font-size: 11px; color: var(--muted); }
+.seal.on { border: 2px solid #8a5a00; background: radial-gradient(circle at 35% 30%, #fff1b8, var(--gold) 55%, #c98a00); color: #4a2d00; font-weight: 700; }
+.stat { font-family: var(--f-display); font-size: 15px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat b { color: var(--gold); }
+.hud .spacer { flex: 1; }
+.hbtn { background: var(--panel-2); border: 2px solid var(--line); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-family: var(--f-display); font-size: 14px; }
+.hbtn:hover { border-color: var(--gold); }
+.goal { flex-basis: 100%; font-size: 13.5px; color: var(--muted); }
+.goal b { color: var(--paper); }
+
+/* Escena */
+#stageWrap { flex: 1; min-height: 0; display: grid; place-items: center; }
+#stage { position: relative; aspect-ratio: 5 / 3; width: min(100%, calc((100dvh - 150px) * 5 / 3)); max-width: 100%; }
+#cv { width: 100%; height: 100%; display: block; image-rendering: pixelated; border: 3px solid var(--line); border-radius: 6px; background: #000; }
+
+/* Diàleg */
+#dialog { position: absolute; left: 2%; right: 2%; bottom: 3%; background: var(--panel); border: 3px solid var(--paper); border-radius: 8px; box-shadow: 0 0 0 3px var(--panel), 0 8px 0 rgba(0,0,0,.35); padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; }
+#dialog .por { width: 72px; height: 72px; flex: none; background: var(--panel-2); border: 2px solid var(--line); border-radius: 6px; image-rendering: pixelated; }
+#dialog .txt { min-width: 0; flex: 1; }
+#dialog .who { font-family: var(--f-display); font-weight: 700; color: var(--gold); font-size: 17px; margin-bottom: 4px; }
+#dialog .say { font-size: clamp(14px, 1.9vw, 18px); line-height: 1.45; min-height: 3em; }
+#dialog .choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+#dialog .choices button { background: var(--panel-2); border: 2px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; font-family: var(--f-display); font-size: 15px; }
+#dialog .choices button.hi, #dialog .choices button:hover { border-color: var(--gold); color: var(--gold); }
+#dialog .more { position: absolute; right: 12px; bottom: 6px; font-family: var(--f-display); color: var(--gold); animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+#toast { position: absolute; left: 50%; top: 4%; transform: translateX(-50%); background: var(--panel); border: 2px solid var(--gold); border-radius: 6px; padding: 6px 14px; font-family: var(--f-display); font-size: 16px; pointer-events: none; opacity: 0; transition: opacity .25s; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
+#toast.show { opacity: 1; }
+
+/* Controls tàctils */
+#touch { position: absolute; inset: auto 0 0 0; display: none; justify-content: space-between; align-items: flex-end; padding: 10px; pointer-events: none; }
+body.touch #touch { display: flex; }
+.dpad { display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); pointer-events: auto; opacity: .85; }
+.dpad button, .abtn { background: rgba(35,40,72,.85); border: 2px solid var(--line); border-radius: 8px; font-family: var(--f-display); font-size: 20px; touch-action: none; }
+.dpad .u { grid-column: 2; grid-row: 1; } .dpad .l { grid-column: 1; grid-row: 2; } .dpad .r { grid-column: 3; grid-row: 2; } .dpad .d { grid-column: 2; grid-row: 3; }
+.abtn { width: 64px; height: 64px; border-radius: 50%; pointer-events: auto; color: var(--gold); opacity: .9; }
+
+/* Finestres */
+#modal { position: fixed; inset: 0; background: rgba(10,12,28,.82); display: grid; place-items: center; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); z-index: 20; }
+.win { width: min(980px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border: 3px solid var(--paper); border-radius: 10px; box-shadow: 0 0 0 4px var(--panel); padding: 18px 20px 20px; }
+.win h2 { font-family: var(--f-display); font-weight: 700; color: var(--gold); margin: 0 0 4px; font-size: clamp(22px, 3vw, 30px); text-wrap: balance; letter-spacing: .02em; }
+.win h3 { font-family: var(--f-display); font-weight: 700; margin: 14px 0 6px; font-size: 19px; color: var(--paper); }
+.win p { margin: 6px 0; line-height: 1.5; max-width: 70ch; }
+.eyebrow { font-family: var(--f-display); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { background: var(--red); color: #fff; border: 2px solid #ff8b86; border-radius: 6px; padding: 9px 16px; cursor: pointer; font-family: var(--f-display); font-weight: 700; font-size: 17px; }
+.btn:hover { filter: brightness(1.1); }
+.btn.ghost { background: var(--panel-2); border-color: var(--line); color: var(--paper); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; color: var(--muted); }
+.field input, .field select { background: var(--panel-2); color: var(--paper); border: 2px solid var(--line); border-radius: 6px; padding: 9px 10px; font: inherit; min-width: 0; }
+.title-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: center; }
+.title-art { width: 100%; image-rendering: pixelated; border: 2px solid var(--line); border-radius: 8px; }
+.logo { font-family: var(--f-display); font-weight: 700; font-size: clamp(34px, 6vw, 58px); line-height: .95; color: var(--gold); text-shadow: 3px 3px 0 var(--red), 6px 6px 0 #000; margin: 4px 0 10px; }
+.keys { font-size: 13.5px; color: var(--muted); }
+kbd { font-family: var(--f-display); background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 4px; padding: 0 5px; color: var(--paper); }
+
+/* Proves */
+.chal-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.pill { font-family: var(--f-display); font-size: 13px; border: 2px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); }
+.pool { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: var(--panel-2); border: 2px dashed var(--line); border-radius: 8px; min-height: 56px; margin: 10px 0; }
+.chip { background: var(--paper); color: #1d2140; border: 3px solid transparent; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 15px; line-height: 1.3; text-align: left; max-width: 100%; box-shadow: 0 3px 0 #9fa3c7; }
+.chip.sel { border-color: var(--sel); transform: translateY(-2px); }
+.chip.good { background: #d4f7e2; box-shadow: 0 3px 0 var(--ok); cursor: default; }
+.chip.wrong { background: #ffe0dc; box-shadow: 0 3px 0 var(--bad); animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.bin { background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 8px; min-height: 110px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; min-width: 0; }
+.bin:hover, .bin.target { border-color: var(--sel); }
+.bin .bl { font-family: var(--f-display); font-weight: 700; font-size: 16px; color: var(--gold); }
+.bin .bs { font-size: 12px; color: var(--muted); margin-top: -4px; }
+.fb { margin-top: 10px; padding: 10px 12px; border-radius: 6px; background: var(--panel-2); border-left: 6px solid var(--line); line-height: 1.45; }
+.fb.ok { border-left-color: var(--ok); }
+.fb.ko { border-left-color: var(--bad); }
+.fb ul { margin: 6px 0 0; padding-left: 20px; }
+.q { font-size: clamp(17px, 2.1vw, 21px); line-height: 1.4; margin: 10px 0; }
+.opts { display: grid; gap: 8px; }
+.opt { text-align: left; background: var(--panel-2); border: 2px solid var(--line); border-radius: 6px; padding: 10px 12px; cursor: pointer; font-size: 16px; line-height: 1.35; }
+.opt:hover:not(:disabled) { border-color: var(--sel); }
+.opt.good { border-color: var(--ok); background: #1f4a3a; }
+.opt.wrong { border-color: var(--bad); background: #5a2630; }
+.opt:disabled { cursor: default; }
+.seq { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; background: #1c2040; border: 2px solid var(--line); border-radius: 8px; min-height: 56px; counter-reset: s; }
+.seq .chip::before { counter-increment: s; content: counter(s) ". "; font-weight: 700; }
+.bar { height: 16px; background: #10132a; border: 2px solid var(--line); border-radius: 4px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, #b06ad9, #ff7ad1); transition: width .5s; }
+.hearts { font-family: var(--f-display); font-size: 22px; color: var(--bad); letter-spacing: 4px; }
+.boss-grid { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; align-items: start; }
+.boss-por { width: 120px; height: 120px; image-rendering: pixelated; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; }
+.bubble { background: var(--paper); color: #1d2140; border-radius: 10px; padding: 10px 14px; font-size: 18px; line-height: 1.4; position: relative; font-weight: 700; }
+.codex { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.card { background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; font-size: 14px; line-height: 1.4; }
+.card h4 { margin: 0 0 4px; font-family: var(--f-display); font-size: 16px; color: var(--gold); }
+.card.locked { color: var(--muted); border-style: dashed; }
+.card dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; }
+.card dt { font-weight: 700; color: var(--muted); }
+.card dd { margin: 0; }
+.tbl-wrap { overflow-x: auto; }
+table.res { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+table.res th, table.res td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: left; vertical-align: top; }
+table.res th { font-family: var(--f-display); color: var(--gold); font-weight: 700; }
+.lvl { font-family: var(--f-display); font-size: 13px; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.lvl.a { background: #1f4a3a; color: var(--ok); } .lvl.b { background: #2c3f5c; color: var(--sel); } .lvl.c { background: #4d3b1d; color: var(--gold); } .lvl.d { background: #5a2630; color: var(--bad); } .lvl.n { background: var(--panel-2); color: var(--muted); }
+.big { font-family: var(--f-display); font-size: clamp(40px, 7vw, 64px); color: var(--gold); line-height: 1; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 12px 0; }
+.stats-row > div { border-left: 4px solid var(--line); padding-left: 12px; min-width: 0; }
+.stats-row .big { font-size: clamp(30px, 5vw, 46px); }
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+@media (max-width: 640px) {
+  .title-grid, .boss-grid { grid-template-columns: 1fr; }
+  .boss-por { width: 88px; height: 88px; }
+  .brand small { display: none; }
+  #dialog .por { width: 52px; height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div id="app">
+  <header class="hud">
+    <div class="brand">VILABIT<small>RA2 · THD</small></div>
+    <div class="seals" id="seals" aria-label="Segells aconseguits"></div>
+    <div class="stat" title="Fitxes THD trobades">Fitxes <b id="sFitxes">0/11</b></div>
+    <div class="stat" title="Experiència">XP <b id="sXp">0</b></div>
+    <div class="spacer"></div>
+    <button class="hbtn" id="bCodex" type="button">Còdex <kbd>C</kbd></button>
+    <button class="hbtn" id="bQuests" type="button">Missions <kbd>Q</kbd></button>
+    <button class="hbtn" id="bSound" type="button" aria-pressed="true">So: sí</button>
+    <div class="goal" id="goal"></div>
+  </header>
+  <div id="stageWrap">
+    <div id="stage">
+      <canvas id="cv" width="800" height="480" aria-label="Mapa de Vilabit"></canvas>
+      <div id="dialog" hidden>
+        <canvas class="por" id="por" width="64" height="64"></canvas>
+        <div class="txt"><div class="who" id="dWho"></div><div class="say" id="dSay"></div><div class="choices" id="dCh"></div></div>
+        <div class="more" id="dMore" hidden>▼</div>
+      </div>
+      <div id="toast"></div>
+      <div id="touch">
+        <div class="dpad">
+          <button class="u" data-d="up" type="button" aria-label="Amunt">▲</button>
+          <button class="l" data-d="left" type="button" aria-label="Esquerra">◀</button>
+          <button class="r" data-d="right" type="button" aria-label="Dreta">▶</button>
+          <button class="d" data-d="down" type="button" aria-label="Avall">▼</button>
+        </div>
+        <button class="abtn" id="bA" type="button" aria-label="Parla o mira">A</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="modal" hidden><div class="win" id="win" role="dialog" aria-modal="true"></div></div>
+<canvas id="confetti" hidden></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ============ CONTINGUT DEL JOC (RA2 · THD) ============ */
+const RA2 = "RA2. Caracteritza les tecnologies habilitadores digitals necessàries per a l'adequació/transformació de les empreses a entorns digitals descrivint les seves característiques i aplicacions.";
+
+const CA = {
+  "2.1": "Identifica les principals tecnologies habilitadores digitals.",
+  "2.2": "Relaciona les THD amb el desenvolupament de productes i serveis.",
+  "2.3": "Relaciona la importància de les THD amb l'economia sostenible i eficient.",
+  "2.4": "Identifica nous mercats generats per les THD.",
+  "2.5": "Analitza la implicació de THD tant en la part de negoci com en la part de planta.",
+  "2.6": "Identifica les millores produïdes a causa de la implantació de les tecnologies habilitadores en relació amb els entorns IT i OT.",
+  "2.7": "Elabora un informe que relacioni les tecnologies amb les seves característiques i àrees d'aplicació."
+};
+
+/* Les 11 fitxes THD (objectes del mapa) */
+const FITXES = [
+  { id: "iot", kind: "truck", x: 22, y: 23, nom: "Internet de les coses (IoT)", en: "Internet of Things", obj: "Camió frigorífic amb sonda",
+    frase: "Objectes amb sensors connectats a Internet que envien dades (i, a vegades, reben ordres).",
+    exemple: "La sonda d'aquest camió avisa al mòbil si la temperatura puja.",
+    aporta: "Converteix el món físic en dades. Sense IoT, la resta de tecnologies no tenen dades per treballar.",
+    pesa: "Planta (OT): vigilar màquines, alarmes, manteniment predictiu, traçabilitat.",
+    compte: "Aparells amb la contrasenya de fàbrica i sense actualitzar: porta d'entrada d'atacs.", familia: "captar", lloc: "al costat del magatzem Rutes Delta" },
+  { id: "g5", kind: "antenna", x: 35, y: 18, nom: "Connectivitat 5G", en: "5G connectivity", obj: "Antena 5G del port",
+    frase: "Xarxa mòbil molt ràpida, amb molt poc retard (latència) i capaç de connectar milers d'aparells alhora.",
+    exemple: "El port connecta grues, camions i sensors amb aquesta xarxa 5G pròpia.",
+    aporta: "Connexió fiable on el cable no arriba i el wifi no és prou bo.",
+    pesa: "Planta: molts sensors alhora, robots mòbils, flotes de vehicles.",
+    compte: "Muntar una xarxa privada és car.", familia: "captar", lloc: "a prop del port" },
+  { id: "cloud", kind: "terminal", x: 10, y: 5, nom: "Cloud computing (núvol)", en: "Cloud computing", obj: "Terminal del núvol",
+    frase: "Fer servir servidors, espai i programes per Internet i pagar només pel que fas servir.",
+    exemple: "La biblioteca guarda el catàleg al núvol: no té cap servidor al soterrani.",
+    aporta: "Sense inversió inicial, creix o es redueix al moment i dona a una pime eines de gran empresa.",
+    pesa: "Negoci (IT). A la planta hi arriba amb l'edge computing.",
+    compte: "Dependre d'un sol proveïdor i factures que es disparen.", familia: "guardar", lloc: "al costat de la Biblioteca" },
+  { id: "bigdata", kind: "archive", x: 3, y: 15, nom: "Big data i analítica", en: "Big data & analytics", obj: "Arxiu de tiquets del mercat",
+    frase: "Tècniques per guardar i analitzar tantes dades que no hi caben en un Excel.",
+    exemple: "El mercat analitza milions de tiquets per decidir què posa en oferta.",
+    aporta: "Passar de mirar el passat a entendre el present i anticipar el futur.",
+    pesa: "Negoci: clients, demanda, preus, frau. A planta, trobar què causa els defectes.",
+    compte: "Dades dolentes donen conclusions falses. Les 5 V: volum, velocitat, varietat, veracitat i valor.", familia: "guardar", lloc: "al Mercat" },
+  { id: "ia", kind: "oracle", x: 30, y: 12, nom: "Intel·ligència artificial (IA)", en: "Artificial intelligence", obj: "Ordinador de l'Agència Píxel",
+    frase: "Programes que aprenen de les dades per predir, classificar o crear contingut.",
+    exemple: "Aquest ordinador prediu quins clients deixaran de comprar.",
+    aporta: "Automatitza tasques repetitives de «pensar»: classificar, predir, redactar esborranys.",
+    pesa: "Tots dos, sobretot negoci. A planta: visió artificial i manteniment predictiu.",
+    compte: "Biaixos i errors que semblen veritat: cal supervisió humana.", familia: "pensar", lloc: "al costat de l'Agència Píxel" },
+  { id: "twin", kind: "twin", x: 14, y: 27, nom: "Bessó digital", en: "Digital twin", obj: "Maqueta digital del magatzem",
+    frase: "Una còpia digital d'una màquina, procés o edifici que rep dades reals i permet fer simulacions.",
+    exemple: "Rutes Delta prova aquí una nova distribució abans de moure cap prestatgeria.",
+    aporta: "Provar decisions abans de prendre-les, sense riscos ni costos reals.",
+    pesa: "Uneix IT i OT: necessita dades de la planta i sistemes de negoci.",
+    compte: "Amb dades dolentes, només simula errors.", familia: "pensar", lloc: "davant del magatzem Rutes Delta" },
+  { id: "robot", kind: "robot", x: 12, y: 23, nom: "Robòtica i cobots", en: "Robotics & cobots", obj: "Robot de magatzem",
+    frase: "Màquines programables que fan feines físiques. Els cobots treballen al costat de les persones.",
+    exemple: "Aquest robot porta la prestatgeria fins a qui prepara la comanda.",
+    aporta: "Treu feines repetitives, pesades o perilloses.",
+    pesa: "Planta (OT). Al negoci, abaixa el cost de cada unitat.",
+    compte: "Seguretat de les persones i inversió. No el confonguis amb l'RPA, un «robot» de programari d'oficina.", familia: "actuar", lloc: "a l'oest del magatzem Rutes Delta" },
+  { id: "print3d", kind: "printer", x: 9, y: 23, nom: "Fabricació additiva (impressió 3D)", en: "Additive manufacturing", obj: "Impressora 3D del taller",
+    frase: "Fabricar un objecte afegint material capa a capa a partir d'un fitxer 3D.",
+    exemple: "En Pere imprimeix recanvis quan li calen: el magatzem és un fitxer.",
+    aporta: "Prototips ràpids, recanvis sota demanda i productes personalitzats.",
+    pesa: "Planta, i també negoci perquè permet vendre productes a mida.",
+    compte: "És cara per a sèries llargues.", familia: "actuar", lloc: "al costat del taller Fred Pere" },
+  { id: "rarv", kind: "headset", x: 28, y: 6, nom: "Realitat augmentada i virtual", en: "Augmented & virtual reality", obj: "Ulleres de realitat virtual",
+    frase: "La RA afegeix informació digital al que veus; la RV et posa dins d'un món simulat.",
+    exemple: "Amb aquestes ulleres pots visitar una suite de l'hotel abans de reservar.",
+    aporta: "Formació sense risc, ajuda d'un expert a distància i venda més atractiva.",
+    pesa: "Tots dos: planta (manteniment guiat) i negoci (formació, màrqueting).",
+    compte: "Ulleres cares i incòmodes durant hores.", familia: "actuar", lloc: "al costat de l'Hotel Llevant" },
+  { id: "ciber", kind: "padlock", x: 18, y: 7, nom: "Ciberseguretat", en: "Cybersecurity", obj: "Cadenat digital de l'Ajuntament",
+    frase: "Les mesures que protegeixen sistemes i dades perquè estiguin disponibles, siguin correctes i siguin privades.",
+    exemple: "Per entrar al sistema de l'Ajuntament cal doble factor.",
+    aporta: "Fa possible tota la resta: sense confiança, ningú connecta la planta ni puja dades al núvol.",
+    pesa: "Tots dos. A la planta, la prioritat és que res s'aturi.",
+    compte: "La baula més feble són les persones: cal formació.", familia: "confiar", lloc: "davant de l'Ajuntament" },
+  { id: "chain", kind: "chainbook", x: 31, y: 18, nom: "Blockchain (registre distribuït)", en: "Blockchain / distributed ledger", obj: "Llibre-cadena de duanes",
+    frase: "Un registre compartit entre diverses empreses on cada anotació queda encadenada i no es pot canviar sense que es noti.",
+    exemple: "Duanes, transitari i client segueixen l'origen d'un lot en el mateix registre.",
+    aporta: "Confiança entre empreses que no es coneixen, sense intermediari.",
+    pesa: "Negoci, i sobretot la relació entre empreses d'una cadena.",
+    compte: "Sovint no cal: si una sola empresa controla la dada, una base de dades normal és millor.", familia: "confiar", lloc: "al costat de la caseta de Duanes" }
+];
+
+const FAMILIES = [
+  { id: "captar", label: "Captar", sub: "veure què passa" },
+  { id: "guardar", label: "Guardar i analitzar", sub: "entendre les dades" },
+  { id: "pensar", label: "Pensar", sub: "decidir millor" },
+  { id: "actuar", label: "Actuar", sub: "fer al món físic" },
+  { id: "confiar", label: "Confiar", sub: "treballar segurs" }
+];
+
+/* Cartells de teoria */
+const CARTELLS = [
+  { x: 16, y: 10, titol: "Plaça · Què és una THD?", text: ["Una tecnologia habilitadora digital serveix a QUALSEVOL sector i fa possible treballar d'una manera nova.", "Tres característiques: TRANSVERSAL (serveix a molts sectors), COMBINABLE (gairebé mai va sola) i TRANSFORMADORA (canvia què ven l'empresa).", "La cadena de la dada: captar → guardar → analitzar → decidir → actuar. La ciberseguretat i el blockchain hi posen confiança."] },
+  { x: 3, y: 25, titol: "Taller · Cinc patrons de productes i serveis nous", text: ["SERVITITZACIÓ: vendre l'ús, no la cosa.", "PERSONALITZACIÓ MASSIVA: a mida, però a preu de sèrie.", "AUTOSERVEI DIGITAL: el client ho fa sol.", "SERVEI PREDICTIU: actuar abans que passi.", "PRODUCTE CONNECTAT: segueix donant dades després de vendre'l."] },
+  { x: 2, y: 16, titol: "Mercat · Mercats nous", text: ["SERVEI NOU: una empresa que ja existia ven una cosa diferent.", "MERCAT NOU: neix un negoci sencer que abans no podia existir.", "Exemples de mercats nous: plataformes entre particulars, ciberseguretat gestionada, economia de la dada, salut digital, comerç social, traçabilitat verificable."] },
+  { x: 37, y: 7, titol: "Hotel · Sostenibilitat i eficiència", text: ["EFICIENT: fer el mateix amb menys recursos.", "SOSTENIBLE: que es pugui mantenir sense malmetre el medi ambient, les persones ni l'economia.", "BALANÇ NET = el que estalvia − el que costa (centres de dades, energia de la IA, residus electrònics, efecte rebot).", "Sense dades no es pot informar de la sostenibilitat."] },
+  { x: 31, y: 20, titol: "Port · Negoci o planta?", text: ["NEGOCI = entorn IT: l'oficina, la informació (vendes, comptabilitat, clients).", "PLANTA = entorn OT: on passen les coses físiques (magatzem, moll, cuina de l'hotel, camió).", "Blockchain gairebé no toca la planta; la robòtica gairebé no toca el negoci; ciberseguretat, IA i bessó digital toquen tots dos."] },
+  { x: 21, y: 27, titol: "Magatzem · Abans → després", text: ["Explica cada millora en dues columnes: ABANS i DESPRÉS, i digues quina tecnologia ho ha fet possible.", "IT: servidors propis → núvol · informe mensual → indicadors en temps real · factures a mà → IA + RPA.", "OT: rondes a peu → sensors · reparar quan s'espatlla → manteniment predictiu · revisar a ull → visió artificial."] },
+  { x: 2, y: 7, titol: "Biblioteca · L'informe de tecnologies", text: ["Un informe de THD relaciona cada tecnologia amb les seves característiques i amb l'àrea on s'aplica.", "Deu blocs: portada · objectiu · context de l'empresa · fitxa de cada tecnologia · taula de síntesi · prioritats justificades · impacte a IT i OT · sostenibilitat · conclusions · fonts.", "La pregunta clau: quin problema d'aquesta empresa resol cada tecnologia?"] }
+];
+
+/* Missions: una per criteri d'avaluació */
+const QUESTS = {
+  "2.1": {
+    npc: "ada", nom: "Les onze fitxes", lloc: "Plaça (Ada)",
+    idea: "Una THD serveix a qualsevol sector i fa possible treballar d'una manera nova. Les 11 en 5 famílies: Captar (IoT, 5G) · Guardar i analitzar (Cloud, Big data) · Pensar (IA, Bessó digital) · Actuar (Robòtica, Impressió 3D, RA i RV) · Confiar (Ciberseguretat, Blockchain).",
+    parts: [
+      { type: "classify", titol: "Classifica les 11 THD en famílies", prompt: "Toca una tecnologia i després la família on va. Quan les tinguis totes, prem «Comprova».",
+        bins: FAMILIES.map(f => ({ id: f.id, label: f.label, sub: f.sub })),
+        items: FITXES.map(f => ({ id: f.id, text: f.nom.replace(/ \(.*\)/, ""), bin: f.familia, why: f.nom + ": " + f.frase })) },
+      { type: "mcq", titol: "Les tres característiques", questions: [
+        { q: "Per què es diuen tecnologies «habilitadores»?", opts: ["Perquè fan possibles maneres noves de treballar a qualsevol sector", "Perquè només les pot fer servir personal habilitat", "Perquè les subvenciona l'Administració"], a: 0, why: "Habiliten: fan possibles coses que abans no es podien fer, a qualsevol sector." },
+        { q: "El mateix sensor de temperatura serveix a un hotel, a un camió i a un magatzem. Quina característica és?", opts: ["Transversal", "Combinable", "Transformadora"], a: 0, why: "Transversal: serveix a molts sectors diferents." },
+        { q: "«L'IoT mesura, el núvol guarda la dada i la IA prediu.» Quina característica és?", opts: ["Combinable", "Transversal", "Transformadora"], a: 0, why: "Combinable: les THD gairebé mai van soles, treballen en equip." },
+        { q: "Un fabricant deixa de vendre màquines i passa a vendre hores de funcionament. Quina característica és?", opts: ["Transformadora", "Transversal", "Combinable"], a: 0, why: "Transformadora: canvia què ven l'empresa, no només com ho fa." }
+      ] }
+    ]
+  },
+  "2.2": {
+    npc: "pere", nom: "La crisi de les cambres", lloc: "Taller Fred Pere",
+    idea: "Les THD no només fan les coses més ràpides: canvien què ven l'empresa. Cinc patrons: servitització, personalització massiva, autoservei digital, servei predictiu i producte connectat.",
+    parts: [
+      { type: "classify", titol: "Cada cas, amb el seu patró", prompt: "Relaciona cada cas amb el patró de producte o servei nou.",
+        bins: [{ id: "serv", label: "Servitització" }, { id: "pers", label: "Personalització massiva" }, { id: "auto", label: "Autoservei digital" }, { id: "pred", label: "Servei predictiu" }, { id: "conn", label: "Producte connectat" }],
+        items: [
+          { id: "a", text: "Abans venia cambres frigorífiques. Ara cobra per hores de fred garantides.", bin: "serv", why: "Servitització: vendre l'ús o el resultat, no el producte." },
+          { id: "b", text: "Una sabateria escaneja el peu i imprimeix plantilles a mida a preu de sèrie.", bin: "pers", why: "Personalització massiva: producte a mida a preu de sèrie (impressió 3D + dades)." },
+          { id: "c", text: "L'hotel deixa fer el registre al mòbil i obrir l'habitació amb clau digital.", bin: "auto", why: "Autoservei digital: el client fa sol el que abans feia un empleat." },
+          { id: "d", text: "El fabricant avisa el client que la seva màquina fallarà d'aquí a dues setmanes.", bin: "pred", why: "Servei predictiu: actuar abans que passi el problema (IoT + big data + IA)." },
+          { id: "e", text: "Un contenidor informa de la seva temperatura durant tot el viatge.", bin: "conn", why: "Producte connectat: segueix donant dades i valor després de vendre's." }
+        ] },
+      { type: "mcq", titol: "Dues preguntes d'en Pere", questions: [
+        { q: "Quina és la gran idea del criteri 2.2?", opts: ["Les THD canvien què ven l'empresa, no només com ho fa", "Les THD només serveixen per abaratir costos", "Les THD substitueixen tots els productes físics"], a: 0, why: "Les THD fan possibles productes i serveis nous: canvien què ven l'empresa." },
+        { q: "Quines THD fan possible el servei predictiu?", opts: ["IoT + big data + IA", "Impressió 3D + RA", "Blockchain + 5G"], a: 0, why: "Els sensors (IoT) donen dades, el big data les processa i la IA prediu la fallada." }
+      ] }
+    ]
+  },
+  "2.4": {
+    npc: "rosa", nom: "Mercat nou o servei nou?", lloc: "Mercat (Rosa)",
+    idea: "Servei nou: una empresa que ja existia ven una cosa diferent. Mercat nou: neix un negoci sencer que abans no podia existir perquè la tecnologia no ho permetia.",
+    parts: [
+      { type: "classify", titol: "Separa els mercats nous", prompt: "És un mercat nou o és un servei nou d'una empresa que ja existia?",
+        bins: [{ id: "mercat", label: "Mercat nou" }, { id: "servei", label: "Servei nou d'una empresa que ja existia" }],
+        items: [
+          { id: "a", text: "Plataformes d'allotjament entre particulars", bin: "mercat", why: "Sense mòbil, geolocalització i núvol aquest negoci no podia existir: és un mercat nou." },
+          { id: "b", text: "Empreses que vigilen 24 hores la ciberseguretat d'altres empreses", bin: "mercat", why: "La ciberseguretat gestionada és un mercat creat per la mateixa digitalització." },
+          { id: "c", text: "Empreses que venen dades i indicadors de mercat", bin: "mercat", why: "Economia de la dada: un mercat nou que neix del big data i la IA." },
+          { id: "d", text: "Consultes mèdiques a distància", bin: "mercat", why: "La salut digital (telemedicina) és un mercat nou." },
+          { id: "e", text: "L'hotel de sempre ofereix el registre al mòbil", bin: "servei", why: "És el mateix hotel amb un servei nou (autoservei digital), no un mercat nou." },
+          { id: "f", text: "La sabateria del barri fa plantilles amb impressió 3D", bin: "servei", why: "Una empresa existent que ven una cosa diferent: servei nou." },
+          { id: "g", text: "El transportista envia al client la temperatura en directe", bin: "servei", why: "Servei nou (producte connectat) d'una empresa que ja existia." },
+          { id: "h", text: "La gestoria llegeix les factures amb IA", bin: "servei", why: "Millora i servei nou d'una gestoria existent, no un mercat nou." }
+        ] },
+      { type: "mcq", titol: "Mercats que canvien", questions: [
+        { q: "Què ha fet el «revenue management» al sector hoteler?", opts: ["Ha canviat un mercat que ja existia: el preu es recalcula diverses vegades al dia", "Ha creat el mercat de l'allotjament", "Ha eliminat les reserves per Internet"], a: 0, why: "L'allotjament ja existia; el que ha canviat és com es fixa el preu, segons la demanda." },
+        { q: "Quin d'aquests és un mercat nou generat per les THD?", opts: ["El comerç social: vendre directament des de les xarxes", "Una fleca que obre més hores", "Una botiga que pinta la façana"], a: 0, why: "El comerç social no existia sense xarxes socials i analítica de dades." }
+      ] }
+    ]
+  },
+  "2.3": {
+    npc: "marta", nom: "El balanç de l'hotel", lloc: "Hotel Llevant (Marta)",
+    idea: "Digitalitzar pot ajudar el planeta, però no és automàtic: cal fer el balanç entre el que estalvia i el que costa. Eficient = fer el mateix amb menys recursos. Sostenible = que es pugui mantenir sense malmetre medi ambient, persones ni economia.",
+    parts: [
+      { type: "mcq", titol: "Dues paraules clau", questions: [
+        { q: "Què vol dir que una empresa és més EFICIENT?", opts: ["Que fa el mateix amb menys recursos (energia, material, temps)", "Que té més ordinadors", "Que ven més car"], a: 0, why: "Eficiència = el mateix resultat amb menys recursos." },
+        { q: "Què vol dir SOSTENIBLE?", opts: ["Que es pot mantenir sense malmetre el medi ambient, les persones ni l'economia", "Que fa servir energia solar", "Que té el segell verd de l'Ajuntament"], a: 0, why: "Sostenible té tres potes: medi ambient, persones i economia." }
+      ] },
+      { type: "classify", titol: "Estalvia o costa?", prompt: "Classifica cada efecte de digitalitzar l'hotel: és un estalvi (+) o un cost (−)?",
+        bins: [{ id: "mes", label: "Estalvia (+)" }, { id: "menys", label: "Costa (−)" }],
+        items: [
+          { id: "a", text: "Apagar clima i llums a les habitacions buides", bin: "mes", why: "Mesurar el consum i actuar-hi automàticament estalvia energia." },
+          { id: "b", text: "Optimitzar rutes: menys quilòmetres en buit", bin: "mes", why: "Menys quilòmetres = menys combustible i menys emissions." },
+          { id: "c", text: "Signatura electrònica: menys paper i menys viatges", bin: "mes", why: "Documents digitals estalvien paper i desplaçaments." },
+          { id: "d", text: "Produir segons la demanda: menys estoc que caduca", bin: "mes", why: "Menys malbaratament i menys residus." },
+          { id: "e", text: "Electricitat i aigua dels centres de dades", bin: "menys", why: "El núvol també consumeix: centres de dades amb electricitat i refrigeració." },
+          { id: "f", text: "Energia per entrenar models d'IA", bin: "menys", why: "Entrenar IA gasta molta electricitat: és un cost ambiental." },
+          { id: "g", text: "Residus electrònics de sensors i ulleres", bin: "menys", why: "Els dispositius acaben sent residus electrònics." },
+          { id: "h", text: "Efecte rebot: com que és més barat, se'n consumeix més", bin: "menys", why: "L'efecte rebot pot menjar-se l'estalvi." }
+        ] },
+      { type: "mcq", titol: "La conclusió de la Marta", questions: [
+        { q: "Digitalitzar sempre és sostenible?", opts: ["No: cal fer el balanç entre el que estalvia i el que costa", "Sí, sempre", "Només si la tecnologia és cara"], a: 0, why: "Balanç net = estalvi − cost. No és automàtic." },
+        { q: "Per què la digitalització és el primer pas per informar de la sostenibilitat?", opts: ["Perquè sense dades no es pot informar de res", "Perquè la llei prohibeix el paper", "Perquè els informes en paper no valen"], a: 0, why: "Per explicar quanta energia gastes o quant contamines, primer ho has de mesurar." }
+      ] }
+    ]
+  },
+  "2.5": {
+    npc: "jordi", nom: "Oficina o moll?", lloc: "Port (Jordi)",
+    idea: "Negoci = entorn IT (l'oficina, la informació). Planta = entorn OT (on passen les coses físiques). No totes les THD pesen igual a tot arreu: saber dir on pesa cada una és el criteri 2.5.",
+    parts: [
+      { type: "mcq", titol: "Primer, els conceptes", questions: [
+        { q: "En un hotel, què és la «planta»?", opts: ["El lloc on passen les coses físiques: habitacions, cuina, clima", "Només les plantes del jardí", "El departament d'informàtica"], a: 0, why: "La planta (OT) no és només una fàbrica: és on passen les coses físiques de qualsevol empresa." }
+      ] },
+      { type: "classify", titol: "On pesa més cada tecnologia?", prompt: "Posa cada tecnologia on pesa més: al negoci, a la planta o a tots dos.",
+        bins: [{ id: "it", label: "Negoci (IT)" }, { id: "ot", label: "Planta (OT)" }, { id: "both", label: "Tots dos" }],
+        items: [
+          { id: "cloud", text: "Cloud", bin: "it", why: "El núvol pesa molt al negoci; a la planta hi arriba de manera indirecta (edge)." },
+          { id: "bigdata", text: "Big data", bin: "it", why: "Big data pesa sobretot al negoci: clients, demanda, preus." },
+          { id: "chain", text: "Blockchain", bin: "it", why: "Blockchain gairebé no toca la planta: és confiança entre empreses." },
+          { id: "robot", text: "Robòtica i cobots", bin: "ot", why: "La robòtica pesa a la planta; al negoci gairebé no hi és." },
+          { id: "iot", text: "IoT", bin: "ot", why: "L'IoT vigila màquines i coses físiques: planta." },
+          { id: "g5", text: "5G", bin: "ot", why: "El 5G connecta sensors, robots i vehicles: planta." },
+          { id: "ia", text: "IA", bin: "both", why: "La IA pesa molt al negoci i també a la planta (visió artificial, manteniment)." },
+          { id: "ciber", text: "Ciberseguretat", bin: "both", why: "La ciberseguretat pesa molt als dos costats." },
+          { id: "twin", text: "Bessó digital", bin: "both", why: "El bessó digital uneix IT i OT." }
+        ] }
+    ]
+  },
+  "2.6": {
+    npc: "laia", nom: "Abans i després", lloc: "Magatzem Rutes Delta (Laia)",
+    idea: "Explica cada millora en dues columnes, ABANS i DESPRÉS, i digues quina tecnologia ho ha fet possible i a quin entorn (IT o OT) passa.",
+    parts: [
+      { type: "mcq", titol: "Què ve després?", questions: [
+        { q: "ABANS: un treballador fa rondes a peu per revisar les cambres de fred. DESPRÉS…", opts: ["Sensors que vigilen la temperatura contínuament (IoT)", "Un informe a final de mes (big data)", "Un registre compartit entre empreses (blockchain)"], a: 0, why: "Rondes manuals → monitoratge continu amb sensors IoT (entorn OT)." },
+        { q: "ABANS: el camió es repara quan s'espatlla. DESPRÉS…", opts: ["Manteniment predictiu: reparar abans (IoT + IA)", "Imprimir un camió nou en 3D", "Visita virtual del camió (RV)"], a: 0, why: "Correctiu → predictiu gràcies a les dades dels sensors i la IA (OT)." },
+        { q: "ABANS: a l'oficina es teclegen les factures a mà. DESPRÉS…", opts: ["La IA les llegeix i un robot de programari (RPA) les entra al programa", "Un cobot tecleja les factures", "Es guarden en un blockchain"], a: 0, why: "IA + RPA automatitzen la feina administrativa (IT). Els cobots són per a la planta." },
+        { q: "ABANS: els informes de vendes arriben a final de mes. DESPRÉS…", opts: ["Indicadors en temps real (big data)", "Robots que reparteixen informes", "Ulleres de realitat augmentada"], a: 0, why: "Informe mensual → indicadors en temps real (IT)." },
+        { q: "ABANS: per provar una nova distribució del magatzem cal moure les prestatgeries. DESPRÉS…", opts: ["Simular-la primer amb un bessó digital", "Comprar més prestatgeries", "Fer-ho amb blockchain"], a: 0, why: "El bessó digital permet provar decisions abans de prendre-les." },
+        { q: "ABANS: la seguretat és només el tallafoc de l'oficina. DESPRÉS…", opts: ["Seguretat basada en la identitat: doble factor (ciberseguretat)", "Treure la contrasenya per anar més ràpid", "Posar els servidors al moll"], a: 0, why: "La seguretat passa a basar-se en qui ets (identitat i doble factor)." }
+      ] },
+      { type: "classify", titol: "IT o OT?", prompt: "On passa cada millora: a l'entorn IT (oficina) o a l'entorn OT (planta)?",
+        bins: [{ id: "it", label: "Entorn IT" }, { id: "ot", label: "Entorn OT" }],
+        items: [
+          { id: "a", text: "Indicadors de vendes en temps real", bin: "it", why: "Informació de negoci: IT." },
+          { id: "b", text: "Factures llegides per IA i entrades per RPA", bin: "it", why: "Tasca administrativa: IT." },
+          { id: "c", text: "Doble factor per entrar al correu", bin: "it", why: "Seguretat dels sistemes d'oficina: IT." },
+          { id: "d", text: "Serveis al núvol que creixen quan cal", bin: "it", why: "Infraestructura de l'oficina: IT." },
+          { id: "e", text: "Sensors a les cambres de fred", bin: "ot", why: "Vigilar coses físiques: OT." },
+          { id: "f", text: "Manteniment predictiu dels camions", bin: "ot", why: "Màquines i vehicles: OT." },
+          { id: "g", text: "Càmeres que detecten caixes trencades", bin: "ot", why: "Control de qualitat físic amb visió artificial: OT." },
+          { id: "h", text: "Cobots per aixecar caixes pesades", bin: "ot", why: "Tasca física de planta: OT." }
+        ] }
+    ]
+  },
+  "2.7": {
+    npc: "clara", nom: "L'informe desordenat", lloc: "Biblioteca (Clara)",
+    idea: "Un informe de THD relaciona cada tecnologia amb les seves característiques i amb l'àrea on s'aplica. Té deu blocs, i cada tecnologia ha de respondre: quin problema d'aquesta empresa resol?",
+    parts: [
+      { type: "order", titol: "Ordena els deu blocs de l'informe", prompt: "Toca els blocs en l'ordre correcte. Toca un bloc ja posat per treure'l.",
+        items: ["Portada", "Objectiu", "Context de l'empresa", "Fitxa de cada tecnologia", "Taula de síntesi", "Prioritats justificades", "Impacte a IT i OT", "Sostenibilitat", "Conclusions", "Fonts"] },
+      { type: "mcq", titol: "Les regles de l'informe", questions: [
+        { q: "Quina pregunta ha de respondre cada tecnologia de l'informe?", opts: ["Quin problema d'aquesta empresa resol?", "És la més moderna del mercat?", "Quant costa la marca més cara?"], a: 0, why: "Si no saps dir quin problema resol, aquella tecnologia no hi ha de ser." },
+        { q: "Què ha de tenir cada fila de la taula de síntesi?", opts: ["Tecnologia · àrea · què aporta · prioritat · indicador", "Nom del proveïdor i preu", "Logotip i eslògan"], a: 0, why: "La taula de síntesi resumeix cada tecnologia amb la seva àrea, aportació, prioritat i indicador." },
+        { q: "Què hi va a l'apartat de fonts?", opts: ["D'on has tret la informació, amb data, i per a què has fet servir la IA", "Només el nom del professor", "Res: és opcional"], a: 0, why: "Les fonts permeten comprovar l'informe; si has fet servir IA, s'explica per a què." }
+      ] }
+    ]
+  }
+};
+const QUEST_ORDER = ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7"];
+
+/* Debat final contra en Fum */
+const BOSS = [
+  { claim: "Poseu blockchain a la fleca! Tot ha d'anar en blockchain!", opts: ["Si només una empresa controla la dada, una base de dades normal és millor i més barata.", "Té raó: blockchain sempre és millor.", "Blockchain només serveix per als videojocs."], a: 0, why: "Blockchain té sentit quan diverses empreses comparteixen dades i cap no mana sobre les altres." },
+  { claim: "La meva IA ho fa tot sola. No cal que ningú la revisi!", opts: ["La IA pot tenir biaixos i errors: cal dades de qualitat i supervisió humana.", "Exacte, la IA mai s'equivoca.", "La IA només funciona amb 5G."], a: 0, why: "La IA aprèn de les dades: si són dolentes o esbiaixades, s'equivoca. Cal supervisió humana." },
+  { claim: "Digitalitzar salva el planeta. Sempre i sense excepcions!", opts: ["Cal fer el balanç: el que estalvia menys el que costa (energia, residus, efecte rebot).", "Sí, com més pantalles, més verd.", "Digitalitzar sempre contamina més."], a: 0, why: "La sostenibilitat no és automàtica: es mesura amb el balanç net." },
+  { claim: "La ciberseguretat és un fre. Treu-la i aniràs més ràpid!", opts: ["És una habilitadora: sense confiança, ningú connecta la planta ni puja dades al núvol.", "Té raó, és opcional.", "Només cal a les grans empreses."], a: 0, why: "La ciberseguretat fa possible la resta de THD." },
+  { claim: "Big data? Jo tinc tres Excels enormes. Big, big data!", opts: ["Big data és volum, velocitat i varietat de dades que no caben en eines normals.", "Sí, big data vol dir molts Excels.", "Big data és un tipus de robot."], a: 0, why: "Les 5 V: volum, velocitat, varietat, veracitat i valor." },
+  { claim: "Els meus robots industrials us faran la comptabilitat!", opts: ["La robòtica pesa a la planta; a l'oficina, les tasques les automatitza l'RPA.", "I tant, els robots fan factures.", "Els robots només serveixen per al cinema."], a: 0, why: "La robòtica és sobretot OT; l'RPA és el «robot» de programari de l'oficina." },
+  { claim: "El meu informe té 30 tecnologies. Com més n'hi posis, millor!", opts: ["Cada tecnologia ha de respondre quin problema d'aquesta empresa resol.", "Com més, millor.", "Un informe no necessita tecnologies."], a: 0, why: "Un informe de THD prioritza i justifica; no és un catàleg de botiga." },
+  { claim: "Un bessó digital funciona igual de bé amb dades dolentes!", opts: ["Amb dades dolentes només simula errors: necessita moltes dades i bones.", "Sí, les dades no importen.", "El bessó digital no fa servir dades."], a: 0, why: "Sense dades de qualitat, la simulació no serveix." }
+];
+
+</script>
+<script>
+"use strict";
+/* ================= CONSTANTS ================= */
+const TS = 32, PX = 2, W = 40, H = 30, VW = 25, VH = 15;
+const SAVE_KEY = "vilabit-1665-ra2-v1";
+const $ = (id) => document.getElementById(id);
+const cv = $("cv"), ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+const isTouch = matchMedia("(pointer: coarse)").matches;
+if (isTouch) document.body.classList.add("touch");
+
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shuffle(a, r = Math.random) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+/* ================= STATE ================= */
+function newState() {
+  return {
+    v: 1, name: "", group: "", started: Date.now(), playMs: 0,
+    px: 19, py: 17, dir: "up",
+    fitxes: [], cartells: [], seals: {}, stats: {}, xp: 0,
+    boss: null, finished: false, talked: {}, introDone: false
+  };
+}
+let S = newState();
+let sound = true;
+
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) { } }
+function load() { try { const t = localStorage.getItem(SAVE_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } }
+
+/* ================= SOUND ================= */
+let AC = null;
+function beep(freq, dur = 0.08, type = "square", vol = 0.05, when = 0) {
+  if (!sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + when, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+  } catch (e) { }
+}
+const SFX = {
+  talk: () => beep(520 + Math.random() * 80, 0.03, "square", 0.025),
+  pick: () => { beep(660, .08); beep(880, .08, "square", .05, .08); beep(1320, .12, "square", .05, .16); },
+  ok: () => { beep(700, .07, "triangle", .08); beep(1050, .12, "triangle", .08, .07); },
+  bad: () => { beep(200, .15, "sawtooth", .05); beep(150, .2, "sawtooth", .05, .12); },
+  seal: () => { [523, 659, 784, 1047, 784, 1047].forEach((f, i) => beep(f, .14, "square", .06, i * .11)); },
+  step: () => beep(90, .03, "triangle", .03),
+  bump: () => beep(70, .06, "square", .03)
+};
+
+/* ================= MAP ================= */
+const T = { G: 0, F: 1, P: 2, WA: 3, TR: 4, DK: 5, SA: 6, PZ: 7 };
+const map = Array.from({ length: H }, () => Array(W).fill(T.G));
+function fill(x1, y1, x2, y2, t) { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) if (y >= 0 && y < H && x >= 0 && x < W) map[y][x] = t; }
+(function buildMap() {
+  const r = rng(1665);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (r() < 0.12) map[y][x] = T.F;
+  fill(24, 20, 25, 28, T.SA); fill(26, 20, 38, 20, T.SA); fill(26, 21, 38, 28, T.WA);
+  fill(26, 24, 33, 24, T.DK); fill(33, 22, 33, 26, T.DK);
+  fill(1, 8, 38, 9, T.P);           // carrer de dalt
+  fill(11, 8, 11, 26, T.P);          // carrer oest
+  fill(19, 8, 20, 18, T.P);          // eix central
+  fill(25, 8, 25, 19, T.P);          // carrer est
+  fill(1, 18, 25, 18, T.P);          // carrer del mig
+  fill(1, 26, 23, 26, T.P);          // carrer de baix
+  fill(26, 16, 37, 16, T.P);         // carrer de l'agència
+  fill(6, 7, 6, 7, T.P); fill(20, 7, 20, 7, T.P); fill(5, 15, 5, 17, T.P); fill(34, 15, 34, 15, T.P); fill(5, 25, 5, 25, T.P);
+  fill(15, 10, 24, 16, T.PZ);        // plaça
+  const trees = [[2, 10], [3, 10], [13, 2], [13, 3], [26, 2], [27, 2], [9, 19], [12, 12], [12, 13], [13, 13], [27, 10], [28, 10], [27, 11], [37, 18], [38, 18], [3, 28], [4, 28], [8, 28], [9, 28], [22, 28], [23, 28], [9, 13], [9, 14], [22, 19], [23, 19], [36, 10], [37, 10], [14, 6], [25, 5], [38, 13], [1, 21], [1, 22], [16, 28], [17, 28]];
+  trees.forEach(([x, y]) => map[y][x] = T.TR);
+  for (let x = 0; x < W; x++) { map[0][x] = T.TR; map[H - 1][x] = T.TR; }
+  for (let y = 0; y < H; y++) { map[y][0] = T.TR; map[y][W - 1] = T.TR; }
+})();
+
+const BUILDINGS = [
+  { id: "ajuntament", x: 15, y: 2, w: 10, h: 5, name: "AJUNTAMENT", roof: "#b8433a", wall: "#efe3c8", door: 20 },
+  { id: "biblioteca", x: 3, y: 2, w: 7, h: 5, name: "BIBLIOTECA", roof: "#6a4fa0", wall: "#e8dcc4", door: 6 },
+  { id: "hotel", x: 29, y: 2, w: 8, h: 6, name: "HOTEL LLEVANT", roof: "#2f6f9f", wall: "#f4efe6", door: 32 },
+  { id: "mercat", x: 2, y: 12, w: 7, h: 3, name: "MERCAT", roof: "stripes", wall: "#c98b4a", door: 5 },
+  { id: "agencia", x: 31, y: 11, w: 7, h: 4, name: "AGÈNCIA PÍXEL", roof: "#f08a24", wall: "#3a3f5c", door: 34 },
+  { id: "taller", x: 2, y: 21, w: 7, h: 4, name: "FRED PERE", roof: "#6c757d", wall: "#d9d4cc", door: 5 },
+  { id: "magatzem", x: 13, y: 21, w: 9, h: 5, name: "RUTES DELTA", roof: "#8a6d3b", wall: "#cfc3a8", door: 17 },
+  { id: "duanes", x: 27, y: 17, w: 4, h: 3, name: "DUANES", roof: "#4c6971", wall: "#e6eef0", door: 28 }
+];
+const FOUNTAIN = { x: 19, y: 13, w: 2, h: 2 };
+const solidB = Array.from({ length: H }, () => Array(W).fill(false));
+BUILDINGS.forEach(b => { for (let y = b.y; y < b.y + b.h; y++) for (let x = b.x; x < b.x + b.w; x++) solidB[y][x] = true; });
+for (let y = FOUNTAIN.y; y < FOUNTAIN.y + 2; y++) for (let x = FOUNTAIN.x; x < FOUNTAIN.x + 2; x++) solidB[y][x] = true;
+
+/* ================= NPCS ================= */
+const NPCS = [
+  { id: "ada", name: "Ada", role: "consultora", x: 17, y: 12, dir: "down", pal: { H: "#3b2a6b", S: "#f2c9a0", C: "#e1211d", P: "#2b2f55", B: "#1b1f3a" }, acc: "glasses" },
+  { id: "pere", name: "En Pere", role: "taller Fred Pere", x: 7, y: 25, dir: "down", pal: { H: "#8a8a8a", S: "#e8b98e", C: "#2f8fb5", P: "#3c3c3c", B: "#222" }, acc: "cap", capc: "#2f6f9f" },
+  { id: "rosa", name: "La Rosa", role: "parada del mercat", x: 7, y: 15, dir: "down", pal: { H: "#b5482e", S: "#f5cfa8", C: "#4caf50", P: "#5d4037", B: "#3e2723" }, acc: "bun" },
+  { id: "marta", name: "La Marta", role: "directora de l'Hotel Llevant", x: 34, y: 8, dir: "down", pal: { H: "#1d1d1d", S: "#c98e62", C: "#2f6f9f", P: "#1b1f3a", B: "#111" } },
+  { id: "jordi", name: "En Jordi", role: "exportador del port", x: 30, y: 20, dir: "down", pal: { H: "#6d4c41", S: "#f0c39b", C: "#ff9800", P: "#37474f", B: "#263238" }, acc: "cap", capc: "#37474f" },
+  { id: "laia", name: "La Laia", role: "operadora logística de Rutes Delta", x: 18, y: 27, dir: "up", pal: { H: "#e0a030", S: "#e6b48a", C: "#7cb342", P: "#33691e", B: "#1b1f3a" } },
+  { id: "clara", name: "La Clara", role: "bibliotecària", x: 8, y: 7, dir: "down", pal: { H: "#7b1fa2", S: "#f4d0b0", C: "#455a64", P: "#263238", B: "#111" }, acc: "glasses" },
+  { id: "alcaldessa", name: "L'Alcaldessa Núria", role: "Ajuntament", x: 22, y: 7, dir: "down", pal: { H: "#4e342e", S: "#d9a77c", C: "#b8433a", P: "#1b1f3a", B: "#111" }, acc: "bun" },
+  { id: "fum", name: "En Fum", role: "venedor de tecnologia miraculosa", x: 23, y: 11, dir: "left", pal: { H: "#222", S: "#e8c4a0", C: "#7b3fa0", P: "#3a1d52", B: "#111" }, acc: "tophat" },
+  { id: "pau", name: "En Pau", role: "veí curiós", x: 13, y: 19, dir: "down", pal: { H: "#f0c040", S: "#f5cfa8", C: "#03a9f4", P: "#1565c0", B: "#222" } },
+  { id: "toni", name: "En Toni", role: "gestoria del poble", x: 9, y: 10, dir: "down", pal: { H: "#5d4037", S: "#e0ac85", C: "#efe3c8", P: "#3e2723", B: "#111" }, acc: "glasses" },
+  { id: "biel", name: "En Biel", role: "Agència Píxel (màrqueting)", x: 36, y: 15, dir: "down", pal: { H: "#00bfa5", S: "#d39d74", C: "#212121", P: "#424242", B: "#111" } },
+  { id: "bit", name: "Bit", role: "el gat de la plaça", x: 22, y: 15, dir: "down", cat: true, wander: { x1: 15, y1: 10, x2: 24, y2: 16 } }
+];
+const npcById = Object.fromEntries(NPCS.map(n => [n.id, n]));
+NPCS.forEach(n => { n.rx = n.x; n.ry = n.y; n.fx = n.x; n.fy = n.y; n.t = 0; });
+
+/* ================= SPRITES ================= */
+const BODY = {
+  down: ["................", "......KKKK......", "....KKHHHHKK....", "...KHHHHHHHHK...", "...KHHHHHHHHK...", "...KHSSSSSSHK...", "...KSSESSESSK...", "...KSSSSSSSSK...", "....KSSMMSSK....", ".....KKKKKK.....", "....KCCCCCCK....", "...KSKCCCCKSK...", "...KSKCCCCKSK...", "....KKPPPPKK....", ".....KPKKPK.....", ".....KBK.KBK...."],
+  up: ["................", "......KKKK......", "....KKHHHHKK....", "...KHHHHHHHHK...", "...KHHHHHHHHK...", "...KHHHHHHHHK...", "...KHHHHHHHHK...", "...KSHHHHHHSK...", "....KSSSSSSK....", ".....KKKKKK.....", "....KCCCCCCK....", "...KSKCCCCKSK...", "...KSKCCCCKSK...", "....KKPPPPKK....", ".....KPKKPK.....", ".....KBK.KBK...."],
+  right: ["................", "......KKKK......", "....KKHHHHKK....", "...KHHHHHHHHK...", "...KHHHHHHHHK...", "...KHHHHSSSSK...", "...KHHHSSSESK...", "...KHHSSSSSSK...", "....KSSSSSMK....", ".....KKKKKK.....", ".....KCCCCK.....", "....KCCCSSK.....", "....KCCCSSK.....", ".....KPPPPK.....", ".....KPKKPK.....", ".....KBK.KBK...."]
+};
+const LEGS = { 0: [".....KPKKPK.....", ".....KBK.KBK...."], 1: [".....KPK.KPK....", "....KBK...KBK..."], 2: ["....KPK.KPK.....", "...KBK...KBK...."] };
+const CAT = ["................", "................", "................", "...K.......K....", "..KOK.....KOK...", "..KOOKKKKKOOK...", "..KOOOOOOOOOK...", "..KOEOOOOEOOK...", "..KOOOONOOOOK..K", "...KOOOOOOOK..KO", "....KOOOOOOKKKOK", "...KOOOOOOOOOOK.", "...KOOOOOOOOOK..", "...KOKOK.KOKOK..", "...KK.KK.KK.KK..", "................"];
+const fix16 = s => (s + "................").slice(0, 16);
+
+function makeSprite(npc, dir, frame) {
+  const c = document.createElement("canvas"); c.width = 32; c.height = 32;
+  const g = c.getContext("2d");
+  const pal = Object.assign({ K: "#1b1f3a", E: "#1b1f3a", M: "#b5504a", O: "#f2a33a", N: "#e98080" }, npc.pal || {});
+  let rows;
+  if (npc.cat) rows = CAT.map(fix16);
+  else {
+    const base = dir === "left" ? "right" : dir;
+    rows = BODY[base].map(fix16);
+    const lg = LEGS[frame] || LEGS[0];
+    rows[14] = fix16(lg[0]); rows[15] = fix16(lg[1]);
+  }
+  const mirror = dir === "left" || (npc.cat && dir === "left");
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const ch = rows[y][x]; if (ch === ".") continue;
+    let col = pal[ch]; if (!col) continue;
+    const dx = mirror ? 15 - x : x;
+    g.fillStyle = col; g.fillRect(dx * 2, y * 2 + (frame && !npc.cat ? -1 : 0) * 0, 2, 2);
+  }
+  // accessoris
+  const pxl = (x, y, col) => { g.fillStyle = col; g.fillRect((mirror ? 15 - x : x) * 2, y * 2, 2, 2); };
+  if (npc.acc === "glasses" && dir !== "up") {
+    if (dir === "down") { for (const x of [5, 6, 9, 10]) pxl(x, 6, "#1b1f3a"); pxl(7, 6, "#1b1f3a"); pxl(8, 6, "#1b1f3a"); pxl(6, 6, "#9fd3ff"); pxl(9, 6, "#9fd3ff"); }
+    else { pxl(9, 6, "#1b1f3a"); pxl(10, 6, "#9fd3ff"); pxl(11, 6, "#1b1f3a"); }
+  }
+  if (npc.acc === "cap") { const cc = npc.capc || "#333"; for (let x = 4; x < 12; x++) { pxl(x, 2, cc); pxl(x, 3, cc); } if (dir === "down") for (let x = 3; x < 13; x++) pxl(x, 4, cc); if (dir === "right" || dir === "left") for (let x = 9; x < 14; x++) pxl(x, 4, cc); }
+  if (npc.acc === "bun") { for (let x = 6; x < 10; x++) pxl(x, 0, npc.pal.H); pxl(5, 0, "#1b1f3a"); pxl(10, 0, "#1b1f3a"); }
+  if (npc.acc === "tophat") {
+    for (let y = 0; y < 4; y++) for (let x = 5; x < 11; x++) pxl(x, y - 1 < 0 ? 0 : y, "#151515");
+    for (let x = 5; x < 11; x++) pxl(x, 3, "#ffcc4d");
+    for (let x = 3; x < 13; x++) pxl(x, 4, "#151515");
+    if (dir === "down") { pxl(6, 8, "#151515"); pxl(7, 8, "#151515"); pxl(8, 8, "#151515"); pxl(9, 8, "#151515"); }
+  }
+  return c;
+}
+const PLAYER = { id: "player", pal: { H: "#2b1b10", S: "#eec39a", C: "#ffcc4d", P: "#2f365e", B: "#1b1f3a" }, acc: "cap", capc: "#e1211d" };
+const spriteCache = new Map();
+function sprite(npc, dir, frame) {
+  const k = npc.id + dir + frame;
+  if (!spriteCache.has(k)) spriteCache.set(k, makeSprite(npc, dir, frame));
+  return spriteCache.get(k);
+}
+
+/* ================= STATIC MAP RENDER ================= */
+const mapCv = document.createElement("canvas"); mapCv.width = W * TS; mapCv.height = H * TS;
+function renderMap() {
+  const g = mapCv.getContext("2d"); const r = rng(42);
+  const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) {
+    const X = tx * TS, Y = ty * TS, t = map[ty][tx];
+    const grass = () => { p(X, Y, TS, TS, "#62b24d"); for (let i = 0; i < 7; i++) { const a = Math.floor(r() * 15) * 2, b = Math.floor(r() * 15) * 2; p(X + a, Y + b, 2, 4, r() < .5 ? "#4f9a3f" : "#7ec462"); } };
+    if (t === T.G || t === T.TR) grass();
+    if (t === T.F) { grass(); const cols = ["#ffd84d", "#ff8fb1", "#ffffff", "#b69cff"]; for (let i = 0; i < 3; i++) { const a = 4 + Math.floor(r() * 12) * 2, b = 4 + Math.floor(r() * 12) * 2; p(X + a, Y + b, 4, 4, cols[Math.floor(r() * 4)]); p(X + a + 1, Y + b + 1, 2, 2, "#fff3a0"); } }
+    if (t === T.P) { p(X, Y, TS, TS, "#d8b88a"); for (let i = 0; i < 4; i++) { const a = Math.floor(r() * 12) * 2, b = Math.floor(r() * 12) * 2; p(X + a, Y + b, 8, 6, "#c9a674"); p(X + a, Y + b, 8, 2, "#e6cda4"); } }
+    if (t === T.PZ) { const c1 = (tx + ty) % 2 ? "#cfc6b8" : "#c3b9a8"; p(X, Y, TS, TS, c1); p(X, Y, TS, 2, "#aa9e8b"); p(X, Y, 2, TS, "#aa9e8b"); p(X + 8, Y + 8, 2, 2, "#e2dbcf"); }
+    if (t === T.SA) { p(X, Y, TS, TS, "#ecd9a0"); for (let i = 0; i < 6; i++) p(X + Math.floor(r() * 16) * 2, Y + Math.floor(r() * 16) * 2, 2, 2, "#d5bf82"); }
+    if (t === T.WA) { p(X, Y, TS, TS, "#2f86c9"); for (let i = 0; i < 3; i++) p(X + Math.floor(r() * 10) * 2, Y + Math.floor(r() * 14) * 2, 10, 2, "#4fa3e0"); }
+    if (t === T.DK) { p(X, Y, TS, TS, "#2f86c9"); p(X + 2, Y, TS - 4, TS, "#a8743f"); for (let i = 0; i < 4; i++) p(X + 2, Y + i * 8, TS - 4, 2, "#7d5229"); p(X + 4, Y + 2, 2, 2, "#5a3a1c"); p(X + TS - 6, Y + 2, 2, 2, "#5a3a1c"); }
+    if (t === T.TR) {
+      p(X + 13, Y + 20, 6, 10, "#6b4426"); p(X + 13, Y + 20, 2, 10, "#86592f");
+      g.fillStyle = "#1f5a2a"; g.beginPath(); g.arc(X + 16, Y + 14, 13, 0, 7); g.fill();
+      g.fillStyle = "#2f7d3a"; g.beginPath(); g.arc(X + 16, Y + 13, 11, 0, 7); g.fill();
+      g.fillStyle = "#43a047"; g.beginPath(); g.arc(X + 13, Y + 10, 6, 0, 7); g.fill();
+      p(X + 10, Y + 7, 4, 2, "#7bc77e");
+    }
+  }
+  // sorra/aigua: vora
+  for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++) if (map[ty][tx] === T.WA && ty > 0 && map[ty - 1][tx] === T.SA) p(tx * TS, ty * TS, TS, 4, "#bfe3ff");
+  // font
+  { const X = FOUNTAIN.x * TS, Y = FOUNTAIN.y * TS;
+    g.fillStyle = "#8d8172"; g.beginPath(); g.arc(X + 32, Y + 34, 30, 0, 7); g.fill();
+    g.fillStyle = "#b4a896"; g.beginPath(); g.arc(X + 32, Y + 32, 28, 0, 7); g.fill();
+    g.fillStyle = "#3b9ee0"; g.beginPath(); g.arc(X + 32, Y + 32, 22, 0, 7); g.fill();
+    g.fillStyle = "#8d8172"; g.fillRect(X + 28, Y + 20, 8, 14); }
+  // edificis
+  BUILDINGS.forEach(b => drawBuilding(g, b));
+}
+function drawBuilding(g, b) {
+  const X = b.x * TS, Y = b.y * TS, Wp = b.w * TS, Hp = b.h * TS;
+  const roofH = Math.max(TS, Math.floor(Hp * 0.45));
+  const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  p(X + 4, Y + 6, Wp, Hp, "rgba(0,0,0,.25)");
+  p(X, Y + roofH, Wp, Hp - roofH, b.wall);
+  p(X, Y + Hp - 4, Wp, 4, "rgba(0,0,0,.18)");
+  if (b.roof === "stripes") {
+    for (let i = 0; i < b.w * 2; i++) p(X + i * 16, Y + roofH - 22, 16, 26, i % 2 ? "#ffffff" : "#e1211d");
+    for (let i = 0; i < b.w * 2; i++) { g.fillStyle = i % 2 ? "#ffffff" : "#e1211d"; g.beginPath(); g.arc(X + i * 16 + 8, Y + roofH + 4, 8, 0, Math.PI); g.fill(); }
+    p(X, Y, Wp, roofH - 22, "#62b24d");
+    // caixes de fruita
+    for (let i = 0; i < 3; i++) { const cx = X + 12 + i * 70, cy = Y + roofH + 18; p(cx, cy, 40, 14, "#8d6e63"); for (let k = 0; k < 6; k++) p(cx + 2 + k * 6, cy - 4, 5, 5, ["#ff7043", "#ffca28", "#9ccc65"][i]); }
+  } else {
+    p(X - 4, Y, Wp + 8, roofH, b.roof);
+    for (let i = 0; i < roofH; i += 8) p(X - 4, Y + i, Wp + 8, 2, "rgba(0,0,0,.18)");
+    p(X - 4, Y + roofH - 4, Wp + 8, 4, "rgba(0,0,0,.3)");
+    p(X - 4, Y, Wp + 8, 3, "rgba(255,255,255,.25)");
+  }
+  // finestres
+  const doorX = (b.door - b.x) * TS;
+  const winY = Y + roofH + 10;
+  if (b.roof !== "stripes" && Hp - roofH > 40) {
+    for (let wx = X + 10; wx < X + Wp - 24; wx += 44) {
+      if (Math.abs((wx - X) - doorX) < 30) continue;
+      p(wx, winY, 22, 18, "#2b2f55"); p(wx + 2, winY + 2, 18, 14, b.id === "agencia" ? "#ff4fa3" : "#9fd3ff"); p(wx + 2, winY + 2, 18, 4, "rgba(255,255,255,.5)"); p(wx + 10, winY + 2, 2, 14, "#2b2f55");
+    }
+  }
+  // porta
+  const dX = X + doorX + 6, dY = Y + Hp - 26;
+  p(dX - 2, dY - 2, 24, 28, "#3e2723"); p(dX, dY, 20, 26, b.id === "magatzem" ? "#9e9e9e" : "#795548");
+  if (b.id === "magatzem") for (let i = 0; i < 6; i++) p(dX, dY + i * 4, 20, 1, "#757575"); else p(dX + 15, dY + 13, 3, 3, "#ffcc4d");
+  // rètol
+  g.font = "bold 11px 'Pixelify Sans', 'Courier New', monospace";
+  const tw = Math.ceil(g.measureText(b.name).width) + 12;
+  const sx = Math.round(X + Wp / 2 - tw / 2), sy = Y + roofH - 18;
+  p(sx, sy, tw, 16, "#fff6e3"); p(sx, sy + 14, tw, 2, "#1b1f3a"); g.strokeStyle = "#1b1f3a"; g.lineWidth = 2; g.strokeRect(sx, sy, tw, 16);
+  g.fillStyle = "#1b1f3a"; g.textBaseline = "middle"; g.fillText(b.name, sx + 6, sy + 8);
+  // detalls
+  if (b.id === "ajuntament") { p(X + Wp / 2 - 2, Y - 26, 3, 28, "#5d4037"); p(X + Wp / 2 + 1, Y - 26, 18, 11, "#ffcc4d"); p(X + Wp / 2 + 1, Y - 22, 18, 3, "#e1211d"); }
+  if (b.id === "agencia") { p(X + 8, Y + 6, 30, 10, "#ff4fa3"); p(X + Wp - 40, Y + 6, 30, 10, "#4fe3ff"); }
+  if (b.id === "taller") { g.fillStyle = "#cfd8dc"; g.beginPath(); g.arc(X + 22, Y + 18, 9, 0, 7); g.fill(); g.fillStyle = "#6c757d"; g.beginPath(); g.arc(X + 22, Y + 18, 4, 0, 7); g.fill(); }
+  if (b.id === "hotel") { for (let i = 0; i < 3; i++) p(X + 20 + i * 10, Y + 8, 6, 6, "#ffcc4d"); }
+}
+
+/* ================= OBJECTS ================= */
+function drawObject(g, kind, X, Y, t) {
+  const p = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(X + x, Y + y, w, h); };
+  switch (kind) {
+    case "truck": p(0, 8, 22, 18, "#eceff1"); p(0, 8, 22, 3, "#90a4ae"); p(22, 14, 10, 12, "#e1211d"); p(24, 16, 6, 5, "#9fd3ff"); p(4, 24, 8, 8, "#263238"); p(20, 24, 8, 8, "#263238"); p(6, 26, 4, 4, "#90a4ae"); p(22, 26, 4, 4, "#90a4ae"); p(8, 13, 6, 6, "#4fd18b"); p(10, 15, 2, 2, (t % 40 < 20) ? "#fff" : "#4fd18b"); break;
+    case "antenna": p(14, -26, 4, 54, "#90a4ae"); p(8, -10, 16, 3, "#90a4ae"); p(10, 2, 12, 3, "#90a4ae"); p(6, 24, 20, 6, "#546e7a"); p(13, -30, 6, 6, (t % 30 < 15) ? "#e1211d" : "#ff8a80");
+      g.strokeStyle = "rgba(111,183,255,.8)"; g.lineWidth = 2; for (let i = 1; i <= 2; i++) { g.beginPath(); g.arc(X + 16, Y - 27, 6 + i * 6 + (t % 30) / 6, -2.4, -0.7); g.stroke(); } break;
+    case "terminal": p(6, 4, 20, 26, "#37474f"); p(9, 7, 14, 10, "#4fe3ff"); p(9, 20, 14, 2, "#78909c"); p(9, 24, 14, 2, "#78909c"); g.fillStyle = "#fff"; g.beginPath(); g.arc(X + 14, Y + 12, 3, 0, 7); g.arc(X + 18, Y + 11, 4, 0, 7); g.arc(X + 21, Y + 13, 2.5, 0, 7); g.fill(); break;
+    case "archive": p(4, 4, 24, 26, "#8d6e63"); for (let i = 0; i < 3; i++) { p(6, 6 + i * 8, 20, 6, "#a1887f"); p(14, 8 + i * 8, 4, 2, "#4e342e"); } p(20, -4, 3, 8, "#ffcc4d"); p(24, -8, 3, 12, "#4fd18b"); p(16, 0, 3, 4, "#e1211d"); break;
+    case "oracle": p(4, 6, 24, 18, "#212121"); p(6, 8, 20, 14, "#7c4dff"); p(13, 24, 6, 4, "#424242"); p(8, 28, 16, 3, "#424242"); p(10, 12, 4, 4, "#fff"); p(18, 12, 4, 4, "#fff"); p(11 + (t % 60 < 30 ? 1 : 0), 13, 2, 2, "#000"); p(19 + (t % 60 < 30 ? 1 : 0), 13, 2, 2, "#000"); p(12, 18, 8, 2, "#b388ff"); break;
+    case "twin": p(2, 18, 28, 12, "#5d4037"); g.strokeStyle = "#4fe3ff"; g.lineWidth = 2; g.strokeRect(X + 8, Y + 2 + Math.sin(t / 15) * 2, 16, 14); g.beginPath(); g.moveTo(X + 8, Y + 2); g.lineTo(X + 14, Y - 3); g.lineTo(X + 30, Y - 3); g.lineTo(X + 24, Y + 2); g.stroke(); p(6, 20, 8, 8, "#cfc3a8"); p(16, 20, 10, 8, "#cfc3a8"); break;
+    case "robot": p(10, 2, 12, 10, "#ffb300"); p(12, 5, 3, 3, "#1b1f3a"); p(18, 5, 3, 3, "#1b1f3a"); p(15, -2, 2, 4, "#ffb300"); p(6, 12, 20, 12, "#ff8f00"); p(2, 14, 4, 8, "#ffb300"); p(26, 14, 4, 8, "#ffb300"); p(8, 24, 6, 6, "#455a64"); p(18, 24, 6, 6, "#455a64"); p(12, 15, 8, 4, "#263238"); break;
+    case "printer": p(2, 6, 28, 24, "#546e7a"); p(4, 8, 24, 18, "#263238"); p(6 + (t % 40) / 3, 10, 6, 3, "#b0bec5"); p(12, 20, 8, 6, "#ff7043"); p(13, 18, 6, 2, "#ff7043"); p(2, 28, 28, 2, "#37474f"); break;
+    case "headset": p(14, 16, 4, 14, "#795548"); p(8, 28, 16, 3, "#5d4037"); p(4, 6, 24, 10, "#212121"); p(6, 8, 9, 6, "#7c4dff"); p(17, 8, 9, 6, "#7c4dff"); p(6, 8, 9, 2, "#b388ff"); p(2, 9, 2, 4, "#212121"); p(28, 9, 2, 4, "#212121"); break;
+    case "padlock": g.strokeStyle = "#9e9e9e"; g.lineWidth = 4; g.beginPath(); g.arc(X + 16, Y + 12, 7, Math.PI, 0); g.stroke(); p(6, 12, 20, 16, "#ffcc4d"); p(6, 12, 20, 3, "#ffe082"); p(14, 17, 4, 6, "#5d4037"); break;
+    case "chainbook": p(4, 10, 24, 18, "#4c6971"); p(6, 12, 20, 14, "#e6eef0"); p(15, 12, 2, 14, "#4c6971"); g.strokeStyle = "#ffcc4d"; g.lineWidth = 2; for (let i = 0; i < 3; i++) { g.strokeRect(X + 2 + i * 9, Y + 2, 8, 6); } break;
+    case "sign": p(14, 16, 4, 14, "#6b4426"); p(2, 2, 28, 16, "#a1887f"); p(4, 4, 24, 12, "#d7ccc8"); p(7, 7, 18, 2, "#5d4037"); p(7, 11, 14, 2, "#5d4037"); break;
+  }
+}
+const OBJECTS = [];
+FITXES.forEach(f => OBJECTS.push({ type: "fitxa", id: f.id, kind: f.kind, x: f.x, y: f.y, ref: f }));
+CARTELLS.forEach((c, i) => OBJECTS.push({ type: "cartell", id: "c" + i, kind: "sign", x: c.x, y: c.y, ref: c }));
+
+/* ================= COLLISION ================= */
+function walkable(x, y) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return false;
+  const t = map[y][x];
+  if (t === T.TR || t === T.WA) return false;
+  if (solidB[y][x]) return false;
+  if (OBJECTS.some(o => o.x === x && o.y === y)) return false;
+  if (NPCS.some(n => n.fx === x && n.fy === y)) return false;
+  return true;
+}
+
+/* ================= PLAYER & LOOP ================= */
+const pl = { x: 19, y: 17, rx: 19, ry: 17, dir: "up", moving: false, t: 0, from: null, frame: 0 };
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const held = new Set();
+let mode = "title"; // title | play | dialog | modal
+let tick = 0, last = performance.now(), playAcc = 0;
+let feeling = 0; // pantalla que tremola
+
+function tryMove(dir) {
+  pl.dir = dir;
+  const [dx, dy] = DIRS[dir];
+  const nx = pl.x + dx, ny = pl.y + dy;
+  if (walkable(nx, ny)) { pl.from = [pl.x, pl.y]; pl.x = nx; pl.y = ny; pl.moving = true; pl.t = 0; if (tick % 2 === 0) SFX.step(); }
+  else if (!pl.bumped) { SFX.bump(); pl.bumped = true; setTimeout(() => pl.bumped = false, 300); }
+}
+function update(dt) {
+  tick++;
+  if (mode === "play") { S.playMs += dt; }
+  if (pl.moving) {
+    pl.t += dt / 150;
+    if (pl.t >= 1) { pl.t = 1; pl.moving = false; S.px = pl.x; S.py = pl.y; S.dir = pl.dir; onStep(); }
+    pl.rx = pl.from[0] + (pl.x - pl.from[0]) * pl.t; pl.ry = pl.from[1] + (pl.y - pl.from[1]) * pl.t;
+    pl.frame = pl.t < 0.5 ? 1 : 2;
+  } else {
+    pl.rx = pl.x; pl.ry = pl.y; pl.frame = 0;
+    if (mode === "play") { const order = ["up", "down", "left", "right"]; const d = [...held].reverse().find(k => order.includes(k)); if (d) tryMove(d); }
+  }
+  // gat que passeja
+  const cat = npcById.bit;
+  cat.t += dt;
+  if (cat.moving) { cat.mt += dt / 260; if (cat.mt >= 1) { cat.moving = false; cat.rx = cat.fx; cat.ry = cat.fy; } else { cat.rx = cat.ox + (cat.fx - cat.ox) * cat.mt; cat.ry = cat.oy + (cat.fy - cat.oy) * cat.mt; } }
+  else if (cat.t > 1400 && mode === "play") {
+    cat.t = 0; const ds = shuffle(Object.keys(DIRS));
+    for (const d of ds) { const [dx, dy] = DIRS[d]; const nx = cat.fx + dx, ny = cat.fy + dy; const w = cat.wander;
+      if (nx < w.x1 || nx > w.x2 || ny < w.y1 || ny > w.y2) continue;
+      if (nx === pl.x && ny === pl.y) continue;
+      const tmp = [cat.fx, cat.fy]; cat.fx = -9; const ok = walkable(nx, ny); cat.fx = tmp[0];
+      if (ok) { cat.ox = cat.fx; cat.oy = cat.fy; cat.fx = nx; cat.fy = ny; cat.x = nx; cat.y = ny; cat.dir = d === "up" || d === "down" ? cat.dir : d; cat.moving = true; cat.mt = 0; break; }
+    }
+  }
+}
+function onStep() {
+  // en Fum crida quan t'hi acostes
+  const f = npcById.fum; const d = Math.abs(f.fx - pl.x) + Math.abs(f.fy - pl.y);
+  if (d <= 3 && !fumBubble.until) { fumBubble.text = FUM_PITCH[Math.floor(Math.random() * FUM_PITCH.length)]; fumBubble.until = performance.now() + 3200; }
+  save();
+}
+const fumBubble = { text: "", until: 0 };
+const FUM_PITCH = ["Psst! Blockchain per a la fleca?", "IA que ho fa tot sola!", "Big, big data!", "Robots per a la comptabilitat!", "Salva el planeta amb pantalles!"];
+
+function camera() {
+  let cx = pl.rx * TS + TS / 2 - cv.width / 2, cy = pl.ry * TS + TS / 2 - cv.height / 2;
+  cx = Math.max(0, Math.min(W * TS - cv.width, cx)); cy = Math.max(0, Math.min(H * TS - cv.height, cy));
+  return [Math.round(cx), Math.round(cy)];
+}
+function draw() {
+  const [cx, cy] = camera();
+  ctx.save();
+  if (feeling > 0) { ctx.translate((Math.random() - .5) * 6, (Math.random() - .5) * 6); feeling--; }
+  ctx.drawImage(mapCv, cx, cy, cv.width, cv.height, 0, 0, cv.width, cv.height);
+  // aigua animada
+  const tx0 = Math.floor(cx / TS), ty0 = Math.floor(cy / TS);
+  for (let ty = ty0; ty <= ty0 + VH + 1 && ty < H; ty++) for (let tx = tx0; tx <= tx0 + VW + 1 && tx < W; tx++) {
+    if (map[ty][tx] !== T.WA) continue;
+    const ph = (tick / 20 + tx * 1.7 + ty * 2.3) % 6;
+    if (ph < 2) { ctx.fillStyle = "rgba(191,227,255,.55)"; ctx.fillRect(tx * TS - cx + 6 + ph * 4, ty * TS - cy + 10 + (tx % 3) * 6, 8, 2); }
+  }
+  // brollador
+  { const X = FOUNTAIN.x * TS - cx + 32, Y = FOUNTAIN.y * TS - cy + 18; ctx.fillStyle = "rgba(191,227,255,.85)";
+    for (let i = 0; i < 6; i++) { const a = (tick / 6 + i * 10) % 24; ctx.fillRect(X - 10 + i * 4, Y - Math.sin(a / 24 * Math.PI) * 12 + a / 2, 2, 4); } }
+  // entitats ordenades per y
+  const ents = [];
+  OBJECTS.forEach(o => ents.push({ y: o.y, d: () => {
+    const X = o.x * TS - cx, Y = o.y * TS - cy;
+    if (X < -64 || Y < -64 || X > cv.width + 32 || Y > cv.height + 32) return;
+    drawObject(ctx, o.kind, X, Y, tick);
+    if (o.type === "fitxa" && !S.fitxes.includes(o.id)) sparkle(X, Y);
+  } }));
+  NPCS.forEach(n => ents.push({ y: n.ry, d: () => {
+    const X = Math.round(n.rx * TS - cx), Y = Math.round(n.ry * TS - cy);
+    if (X < -40 || Y < -40 || X > cv.width + 8 || Y > cv.height + 8) return;
+    ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.fillRect(X + 6, Y + 27, 20, 4);
+    const bob = n.cat ? 0 : (Math.floor((tick + n.x * 7) / 30) % 2);
+    ctx.drawImage(sprite(n, n.dir, n.cat && n.moving ? 0 : 0), X, Y - bob);
+    const mk = npcMarker(n);
+    if (mk) { const by = Y - 14 + Math.sin(tick / 10) * 2; ctx.fillStyle = "#1b1f3a"; ctx.fillRect(X + 10, by - 2, 12, 14); ctx.fillStyle = mk.c; ctx.fillRect(X + 12, by, 8, 10); ctx.fillStyle = "#1b1f3a"; ctx.font = "bold 10px 'Pixelify Sans', monospace"; ctx.textBaseline = "top"; ctx.fillText(mk.t, X + 13.5, by); }
+  } }));
+  ents.push({ y: pl.ry + 0.01, d: () => {
+    const X = Math.round(pl.rx * TS - cx), Y = Math.round(pl.ry * TS - cy);
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.fillRect(X + 6, Y + 27, 20, 4);
+    ctx.drawImage(sprite(PLAYER, pl.dir, pl.frame), X, Y - (pl.frame ? 2 : 0));
+  } });
+  ents.sort((a, b) => a.y - b.y).forEach(e => e.d());
+  // bafarada d'en Fum
+  if (fumBubble.until > performance.now()) {
+    const f = npcById.fum; const X = f.rx * TS - cx + 16, Y = f.ry * TS - cy - 22;
+    ctx.font = "bold 12px 'Pixelify Sans', monospace"; const w = ctx.measureText(fumBubble.text).width + 14;
+    const bx = Math.max(4, Math.min(cv.width - w - 4, X - w / 2));
+    ctx.fillStyle = "#fff6e3"; ctx.fillRect(bx, Y - 18, w, 20); ctx.strokeStyle = "#7b3fa0"; ctx.lineWidth = 2; ctx.strokeRect(bx, Y - 18, w, 20);
+    ctx.fillStyle = "#3a1d52"; ctx.textBaseline = "middle"; ctx.fillText(fumBubble.text, bx + 7, Y - 8);
+  } else fumBubble.until = 0;
+  // indicador d'interacció
+  const tgt = facing();
+  if (mode === "play" && tgt) {
+    const X = (pl.x + DIRS[pl.dir][0]) * TS - cx, Y = (pl.y + DIRS[pl.dir][1]) * TS - cy;
+    ctx.strokeStyle = "rgba(255,204,77," + (0.5 + Math.sin(tick / 8) * 0.4) + ")"; ctx.lineWidth = 2; ctx.strokeRect(X + 1, Y + 1, TS - 2, TS - 2);
+  }
+  ctx.restore();
+}
+function sparkle(X, Y) {
+  const a = tick / 12;
+  for (let i = 0; i < 4; i++) {
+    const ang = a + i * Math.PI / 2, r = 14 + Math.sin(tick / 9 + i) * 3;
+    const sx = X + 16 + Math.cos(ang) * r, sy = Y + 14 + Math.sin(ang) * r;
+    ctx.fillStyle = i % 2 ? "#ffcc4d" : "#fff6c0"; ctx.fillRect(sx - 2, sy - 2, 4, 4); ctx.fillRect(sx - 1, sy - 4, 2, 8); ctx.fillRect(sx - 4, sy - 1, 8, 2);
+  }
+}
+function npcMarker(n) {
+  const q = Object.keys(QUESTS).find(k => QUESTS[k].npc === n.id);
+  if (q) {
+    if (S.seals[q]) return { c: "#4fd18b", t: "✓" };
+    if (q === "2.1" && S.fitxes.length < FITXES.length) return { c: "#6fb7ff", t: "?" };
+    return { c: "#ffcc4d", t: "!" };
+  }
+  if (n.id === "alcaldessa" && Object.keys(S.seals).length === 7 && !S.boss?.won) return { c: "#ff7466", t: "!" };
+  if (n.id === "fum" && Object.keys(S.seals).length === 7 && !S.boss?.won) return { c: "#ff7466", t: "!" };
+  return null;
+}
+function facing() {
+  const [dx, dy] = DIRS[pl.dir]; const x = pl.x + dx, y = pl.y + dy;
+  const n = NPCS.find(n => n.fx === x && n.fy === y); if (n) return { type: "npc", n };
+  const o = OBJECTS.find(o => o.x === x && o.y === y); if (o) return { type: "obj", o };
+  const b = BUILDINGS.find(b => b.door === x && b.y + b.h - 1 === y); if (b) return { type: "door", b };
+  return null;
+}
+function loop(now) {
+  const dt = Math.min(50, now - last); last = now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+
+/* ================= HUD ================= */
+function hud() {
+  $("seals").innerHTML = QUEST_ORDER.map(k => `<div class="seal ${S.seals[k] ? "on" : ""}" title="Segell ${k}: ${esc(QUESTS[k].nom)}">${k}</div>`).join("");
+  $("sFitxes").textContent = S.fitxes.length + "/" + FITXES.length;
+  $("sXp").textContent = S.xp;
+  $("goal").innerHTML = "<b>Objectiu:</b> " + esc(currentGoal());
+}
+function currentGoal() {
+  const n = Object.keys(S.seals).length;
+  if (S.boss?.won) return "Has guanyat el debat! Obre «Missions» per descarregar l'informe en PDF.";
+  if (n === 7) return "Tens els set segells. Parla amb l'Alcaldessa davant de l'Ajuntament per començar el debat.";
+  if (S.fitxes.length < FITXES.length) return `Troba les fitxes brillants de les THD (${S.fitxes.length}/11) i parla amb els veïns que tenen un «!».`;
+  if (!S.seals["2.1"]) return "Ja tens les 11 fitxes! Torna a la plaça i parla amb l'Ada.";
+  const next = QUEST_ORDER.find(k => !S.seals[k]);
+  return `Aconsegueix el segell ${next}: ${QUESTS[next].lloc}. Et falten ${7 - n} segells.`;
+}
+let toastT = 0;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2400); }
+function addXp(n) { S.xp += Math.max(0, Math.round(n)); hud(); }
+
+/* ================= DIALOG ================= */
+let D = null;
+function portrait(canvas, npc, kind) {
+  const g = canvas.getContext("2d"); g.imageSmoothingEnabled = false; g.clearRect(0, 0, canvas.width, canvas.height);
+  if (kind) { const t = document.createElement("canvas"); t.width = 48; t.height = 72; drawObject(t.getContext("2d"), kind, 8, 36, tick);
+    const h = kind === "antenna" ? 72 : 40, y0 = kind === "antenna" ? 0 : 32; const s = canvas.height / h * 0.9; g.drawImage(t, 0, y0, 48, h, canvas.width / 2 - 24 * s, canvas.height * 0.05, 48 * s, h * s); return; }
+  if (!npc) return;
+  const sp = sprite(npc, "down", 0); const s = canvas.width / 32 * 1.6;
+  g.drawImage(sp, 0, 0, 32, 22, canvas.width / 2 - 16 * s, canvas.height * 0.08, 32 * s, 22 * s);
+}
+function say(pages, done) {
+  mode = "dialog"; D = { pages, i: 0, done, shown: 0, full: false, chosen: 0 };
+  $("dialog").hidden = false; showPage();
+}
+function nameFill(t) { return t.replace(/\{nom\}/g, S.name || "consultor/a"); }
+function showPage() {
+  const pg = D.pages[D.i]; const npc = pg.who ? (pg.who === "player" ? PLAYER : npcById[pg.who]) : null;
+  portrait($("por"), npc, pg.kind);
+  $("dWho").textContent = pg.name || (npc && npc.name) || "";
+  D.text = nameFill(pg.text); D.shown = 0; D.full = false; $("dSay").textContent = ""; $("dCh").innerHTML = ""; $("dMore").hidden = true;
+  clearInterval(D.iv);
+  D.iv = setInterval(() => {
+    D.shown += 2; if (D.shown % 6 === 0) SFX.talk();
+    $("dSay").textContent = D.text.slice(0, D.shown);
+    if (D.shown >= D.text.length) finishType();
+  }, 18);
+}
+function finishType() {
+  clearInterval(D.iv); D.full = true; $("dSay").textContent = D.text;
+  const pg = D.pages[D.i];
+  if (pg.choices) {
+    D.chosen = 0;
+    $("dCh").innerHTML = pg.choices.map((c, i) => `<button type="button" data-i="${i}" class="${i === 0 ? "hi" : ""}">${i + 1}. ${esc(c.t)}</button>`).join("");
+    $("dCh").querySelectorAll("button").forEach(b => b.onclick = () => choose(+b.dataset.i));
+  } else $("dMore").hidden = false;
+}
+function choose(i) { const pg = D.pages[D.i]; const c = pg.choices[i]; closeDialog(); if (c.f) c.f(); }
+function advance() {
+  if (!D) return;
+  if (!D.full) { finishType(); return; }
+  const pg = D.pages[D.i];
+  if (pg.choices) { choose(D.chosen); return; }
+  D.i++; if (D.i >= D.pages.length) { const done = D.done; closeDialog(); if (done) done(); } else showPage();
+}
+function closeDialog() { if (D) clearInterval(D.iv); D = null; $("dialog").hidden = true; if (mode === "dialog") mode = "play"; }
+function moveChoice(d) {
+  const pg = D && D.pages[D.i]; if (!pg || !pg.choices || !D.full) return;
+  D.chosen = (D.chosen + d + pg.choices.length) % pg.choices.length;
+  $("dCh").querySelectorAll("button").forEach((b, i) => b.classList.toggle("hi", i === D.chosen));
+}
+
+/* ================= INTERACTIONS ================= */
+function interact() {
+  const f = facing(); if (!f) return;
+  if (f.type === "npc") { const n = f.n; if (!n.cat) n.dir = ({ up: "down", down: "up", left: "right", right: "left" })[pl.dir]; talk(n); }
+  else if (f.type === "obj") readObject(f.o);
+  else if (f.type === "door") say([{ name: f.b.name, text: doorText(f.b) }]);
+}
+function doorText(b) {
+  const t = { ajuntament: "La porta està tancada fins a l'assemblea. Parla amb l'Alcaldessa.", biblioteca: "Fa olor de llibres i de servidors... ah, no, que tot és al núvol.", hotel: "Al vestíbul tothom fa el registre amb el mòbil. Bé, tothom no: la Marta encara té fulls.", mercat: "Taronges, tomàquets i milions de tiquets de compra.", agencia: "Pantalles enceses i olor de cafè. Aquí la IA prediu què compraràs.", taller: "Dins hi ha cambres frigorífiques a mig muntar.", magatzem: "Prestatgeries, caixes i un robot que fa nyic-nyic.", duanes: "Documents, segells i un llibre-cadena que tothom pot consultar." };
+  return t[b.id] || "Tancat.";
+}
+function readObject(o) {
+  if (o.type === "cartell") {
+    const c = o.ref; if (!S.cartells.includes(o.id)) { S.cartells.push(o.id); addXp(5); }
+    say(c.text.map((tx, i) => ({ name: "Cartell · " + c.titol, text: tx, kind: "sign" })));
+    return;
+  }
+  const f = o.ref; const nou = !S.fitxes.includes(f.id);
+  const pages = [
+    { name: f.obj, kind: f.kind, text: (nou ? "Has trobat una fitxa THD! " : "") + f.nom + ": " + f.frase },
+    { name: f.obj, kind: f.kind, text: "Exemple: " + f.exemple + " Què aporta: " + f.aporta },
+    { name: f.obj, kind: f.kind, text: "On pesa més: " + f.pesa + " Compte amb: " + f.compte }
+  ];
+  say(pages, () => {
+    if (nou) { S.fitxes.push(f.id); addXp(20); SFX.pick(); toast(`Fitxa ${S.fitxes.length}/11: ${f.nom}`); save(); hud();
+      if (S.fitxes.length === FITXES.length) setTimeout(() => say([{ who: "ada", text: "{nom}, m'han dit que ja tens les onze fitxes! Vine a la plaça: et faré la prova de les famílies." }]), 400); }
+  });
+}
+function questIntro(k, lines) {
+  const q = QUESTS[k];
+  if (S.seals[k]) {
+    const st = S.stats[k];
+    return [{ who: q.npc, text: lines.done + ` (Encerts a la primera: ${st ? Math.round(100 * st.firstOk / st.total) : 0}%)` },
+      { who: q.npc, text: "Idea clau: " + q.idea, choices: [{ t: "Vull practicar la prova (no puntua)", f: () => openChallenge(k, true) }, { t: "Gràcies!", f: null }] }];
+  }
+  return [...lines.intro.map(t => ({ who: q.npc, text: t })),
+    { who: q.npc, text: lines.ask, choices: [{ t: "Som-hi!", f: () => openChallenge(k) }, { t: "Explica-m'ho primer", f: () => say([{ who: q.npc, text: q.idea }, { who: q.npc, text: "Preparat/da?", choices: [{ t: "Som-hi!", f: () => openChallenge(k) }, { t: "Més tard", f: null }] }]) }, { t: "Més tard", f: null }] }];
+}
+const LINES = {
+  "2.2": { intro: ["Ai, ai, ai... Abans venia cambres frigorífiques i prou. Ara el meu nebot diu que he de «servititzar».", "Servititzar! Això sona a malaltia. Diu que les THD no només fan les coses més ràpides, sinó que canvien QUÈ ven l'empresa."], ask: "M'ajudes a posar ordre en aquests cinc casos?", done: "Ara ho tinc clar: vendré hores de fred garantides. Gràcies!" },
+  "2.4": { intro: ["Cada setmana algú em diu que ha inventat «un mercat nou».", "Però moltes vegades és la botiga de tota la vida amb una app! Una cosa és un servei nou i una altra un mercat que abans no podia existir."], ask: "Em separes els casos?", done: "Ja no em colaran cap «mercat nou» que no ho sigui!" },
+  "2.3": { intro: ["En Fum m'ha dit que si poso pantalles a totes les habitacions salvaré el planeta. Em fa olor de fum...", "Vull digitalitzar l'hotel, però vull saber de veritat què estalvio i què em costa."], ask: "Fem el balanç plegats?", done: "Balanç fet: estalvi menys cost. I amb dades per demostrar-ho!" },
+  "2.5": { intro: ["Exporto material elèctric a mig món. Tinc una oficina plena d'ordinadors i un moll ple de grues.", "Vull invertir en tecnologia, però no sé si cada cosa va a l'oficina o al moll!"], ask: "M'ajudes a decidir on pesa cada tecnologia?", done: "Ara ja sé què va a l'oficina i què va al moll." },
+  "2.6": { intro: ["Tinc camions, cambres de fred i una oficina plena de papers.", "Tothom em ven millores, però jo vull saber què canvia de veritat: com era ABANS i com serà DESPRÉS."], ask: "Repassem les millores?", done: "Abans i després: així sí que ho entenc!" },
+  "2.7": { intro: ["L'Alcaldessa vol un informe de tecnologies per a cada empresa del poble.", "Però el vent ha entrat per la finestra i els blocs de l'informe s'han desordenat!"], ask: "M'ajudes a muntar l'informe?", done: "L'informe ja està en ordre. L'Alcaldessa estarà contenta." }
+};
+function talk(n) {
+  const nSeals = Object.keys(S.seals).length;
+  switch (n.id) {
+    case "ada":
+      if (S.seals["2.1"]) return say(questIntro("2.1", { done: "Ja tens el segell de les onze fitxes. Ets un/a crac." }));
+      if (S.fitxes.length < FITXES.length) {
+        const falten = FITXES.filter(f => !S.fitxes.includes(f.id)).slice(0, 3).map(f => f.lloc);
+        return say([{ who: "ada", text: `Portes ${S.fitxes.length} de 11 fitxes. Busca les espurnes daurades. Pistes: ${falten.join("; ")}.` },
+          { who: "ada", text: "Recorda: les THD són transversals, combinables i transformadores. Mira també el cartell de la plaça." }]);
+      }
+      return say(questIntro("2.1", { intro: ["Has trobat les onze! Ara demostra-ho.", "Primer classificaràs les tecnologies en cinc famílies; després, quatre preguntes sobre les seves característiques."], ask: "Comencem la prova?", done: "" }));
+    case "pere": return say(questIntro("2.2", LINES["2.2"]));
+    case "rosa": return say(questIntro("2.4", LINES["2.4"]));
+    case "marta": return say(questIntro("2.3", LINES["2.3"]));
+    case "jordi": return say(questIntro("2.5", LINES["2.5"]));
+    case "laia": return say(questIntro("2.6", LINES["2.6"]));
+    case "clara": return say(questIntro("2.7", LINES["2.7"]));
+    case "alcaldessa":
+      if (S.boss?.won) return say([{ who: "alcaldessa", text: "Gràcies a tu, Vilabit es digitalitzarà amb cap i no amb fum. Pots descarregar el teu informe des de «Missions»." }]);
+      if (nSeals < 7) return say([{ who: "alcaldessa", text: `Benvingut/da, {nom}. Per parlar a l'assemblea necessito els set segells. Te'n falten ${7 - nSeals}.` },
+        { who: "alcaldessa", text: "Els veïns amb un «!» groc t'esperen. Obre «Missions» (tecla Q) per veure on són." }]);
+      return say([{ who: "alcaldessa", text: "Tens els set segells! L'assemblea comença ara mateix." }, { who: "fum", text: "Ha, ha! Un/a aprenent contra el gran Fum? Les meves ofertes són irresistibles!" },
+        { who: "alcaldessa", text: "Rebat cada afirmació d'en Fum. Si perds tota la credibilitat, podràs tornar-ho a provar.", choices: [{ t: "Que comenci el debat!", f: openBoss }, { t: "Encara no", f: null }] }]);
+    case "fum":
+      if (nSeals === 7 && !S.boss?.won) return talk(npcById.alcaldessa);
+      if (S.boss?.won) return say([{ who: "fum", text: "Està bé, està bé... Potser a la fleca n'hi ha prou amb una bona base de dades. Me'n vaig a un altre poble." }]);
+      return say([{ who: "fum", text: shuffle(["Psst! Vols un blockchain per a la teva fleca? Preu d'amic!", "La meva IA ho fa tot sola. Ni l'has d'endollar!", "Big data? Tinc tres Excels enormes. Big, big data!", "Digitalitzar salva el planeta. Sempre. Ho diu el meu fullet!", "Robots industrials per fer la comptabilitat! Oferta limitada!"])[0] }, { who: "player", name: S.name || "Tu", text: "Hmm... això em sona a fum. Quan tingui els set segells, en parlarem a l'assemblea." }]);
+    case "pau": return say([{ who: "pau", text: "Les espurnes daurades són fitxes de tecnologies! N'hi ha prop del port, del magatzem, de l'hotel i de la biblioteca." }, { who: "pau", text: "I els cartells de fusta expliquen la teoria. La meva mare diu que s'han de llegir abans de cada prova." }]);
+    case "toni": return say([{ who: "toni", text: "A la gestoria hem posat IA per llegir les factures i un robot de programari, l'RPA, que les entra al programa." }, { who: "toni", text: "Un cobot no, eh! Els cobots són robots físics per a la planta. L'RPA és programari d'oficina." }]);
+    case "biel": return say([{ who: "biel", text: "A l'agència unim les dades del web, de la botiga i del CRM. La IA prediu quins clients marxaran." }, { who: "biel", text: "Però si les dades són dolentes, la IA treu conclusions falses amb cara de científiques. Dades bones primer!" }]);
+    case "bit": SFX.talk(); return say([{ who: "bit", text: shuffle(["Miau. (El gat et mira com si sabés que la ciberseguretat és una habilitadora.)", "Prrr... (S'estira sobre el sensor de temperatura. Ara marca 38 °C.)", "Miau! (Ha trepitjat el teclat i ha creat un mercat nou.)"])[0] }]);
+  }
+}
+
+/* ================= CHALLENGES ================= */
+let C = null;
+function modalOpen(html) { mode = "modal"; $("win").innerHTML = html; $("modal").hidden = false; $("win").scrollTop = 0; }
+function modalClose() { $("modal").hidden = true; $("win").innerHTML = ""; mode = "play"; held.clear(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function openChallenge(k, practice = false) {
+  const q = QUESTS[k];
+  C = { k, practice, part: 0, stats: { total: 0, firstOk: 0, checks: 0, errors: [], startedAt: Date.now() } };
+  renderPart();
+}
+function head(title, extra = "") {
+  const q = QUESTS[C.k];
+  return `<div class="chal-head"><div><div class="eyebrow">Criteri ${C.k} · ${esc(q.nom)}${C.practice ? " · pràctica" : ""}</div><h2>${esc(title)}</h2></div><div class="row"><span class="pill">Part ${C.part + 1} de ${q.parts.length}</span>${extra}</div></div>`;
+}
+function renderPart() {
+  const part = QUESTS[C.k].parts[C.part];
+  if (part.type === "classify") renderClassify(part);
+  else if (part.type === "mcq") renderMcq(part);
+  else if (part.type === "order") renderOrder(part);
+}
+function nextPart() { C.part++; if (C.part >= QUESTS[C.k].parts.length) finishChallenge(); else renderPart(); }
+
+/* classificar */
+function renderClassify(part) {
+  const st = { assign: {}, sel: null, checked: false, firstDone: false, locked: {} };
+  const items = shuffle(part.items);
+  C.cl = st;
+  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><div class="pool" id="pool"></div><div class="bins" id="bins"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>Comprova</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+  const draw = () => {
+    const chip = it => `<button type="button" class="chip ${st.sel === it.id ? "sel" : ""} ${st.locked[it.id] ? "good" : ""} ${st.wrong && st.wrong.includes(it.id) ? "wrong" : ""}" data-id="${it.id}">${esc(it.text)}</button>`;
+    $("pool").innerHTML = items.filter(it => !st.assign[it.id]).map(chip).join("") || `<span class="eyebrow">Totes col·locades</span>`;
+    $("bins").innerHTML = part.bins.map(b => `<div class="bin" data-bin="${b.id}" role="button" tabindex="0"><div class="bl">${esc(b.label)}</div>${b.sub ? `<div class="bs">${esc(b.sub)}</div>` : ""}${items.filter(it => st.assign[it.id] === b.id).map(chip).join("")}</div>`).join("");
+    $("chk").disabled = items.some(it => !st.assign[it.id]);
+    $("win").querySelectorAll(".chip").forEach(el => el.onclick = (e) => {
+      e.stopPropagation(); const id = el.dataset.id; const binEl = el.closest(".bin");
+      if (st.sel && st.sel !== id && binEl) { st.assign[st.sel] = binEl.dataset.bin; st.sel = null; SFX.talk(); draw(); return; }
+      if (st.locked[id]) return; st.sel = st.sel === id ? null : id; SFX.talk(); draw(); });
+    $("win").querySelectorAll(".bin").forEach(el => { const act = () => { if (!st.sel) return; st.assign[st.sel] = el.dataset.bin; st.sel = null; SFX.talk(); draw(); }; el.onclick = act; el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); act(); } }; });
+  };
+  $("pool").onclick = () => { if (st.sel && st.assign[st.sel]) { delete st.assign[st.sel]; st.sel = null; draw(); } };
+  $("cancel").onclick = () => { modalClose(); C = null; };
+  $("chk").onclick = () => {
+    const wrong = items.filter(it => st.assign[it.id] !== it.bin);
+    C.stats.checks++;
+    if (!st.firstDone) {
+      st.firstDone = true; C.stats.total += items.length; C.stats.firstOk += items.length - wrong.length;
+      wrong.forEach(it => C.stats.errors.push({ q: it.text, given: labelOf(part, st.assign[it.id]), correct: labelOf(part, it.bin), why: it.why }));
+    }
+    items.forEach(it => { if (st.assign[it.id] === it.bin) st.locked[it.id] = true; });
+    st.wrong = wrong.map(it => it.id);
+    if (!wrong.length) {
+      SFX.ok(); draw();
+      $("fb").innerHTML = `<div class="fb ok"><b>Perfecte!</b> Totes al seu lloc.</div>`;
+      $("chk").textContent = "Continua"; $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus();
+    } else {
+      SFX.bad(); feeling = 8;
+      // les incorrectes tornen a la safata
+      wrong.forEach(it => delete st.assign[it.id]);
+      draw();
+      $("fb").innerHTML = `<div class="fb ko"><b>${wrong.length} ${wrong.length === 1 ? "no és" : "no són"} al seu lloc.</b> Han tornat a la safata. Pistes:<ul>${wrong.map(it => `<li>${esc(it.why)}</li>`).join("")}</ul></div>`;
+    }
+  };
+  draw();
+}
+function labelOf(part, binId) { const b = part.bins.find(b => b.id === binId); return b ? b.label : "—"; }
+
+/* test */
+function renderMcq(part) {
+  let qi = 0;
+  const qs = part.questions.map(q => { const order = shuffle(q.opts.map((o, i) => i)); return { ...q, order }; });
+  const show = () => {
+    const q = qs[qi];
+    modalOpen(`${head(part.titol, `<span class="pill">Pregunta ${qi + 1}/${qs.length}</span>`)}<p class="q">${esc(q.q)}</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>Continua</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+    $("cancel").onclick = () => { modalClose(); C = null; };
+    $("win").querySelectorAll(".opt").forEach(b => b.onclick = () => {
+      const oi = +b.dataset.oi, ok = oi === q.a;
+      C.stats.total++; C.stats.checks++; if (ok) C.stats.firstOk++; else C.stats.errors.push({ q: q.q, given: q.opts[oi], correct: q.opts[q.a], why: q.why });
+      $("win").querySelectorAll(".opt").forEach(x => { x.disabled = true; if (+x.dataset.oi === q.a) x.classList.add("good"); });
+      if (!ok) { b.classList.add("wrong"); SFX.bad(); feeling = 8; } else SFX.ok();
+      $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? "Correcte!" : "No és aquesta."}</b> ${esc(q.why)}</div>`;
+      const nx = $("nxt"); nx.hidden = false; nx.focus();
+      nx.onclick = () => { qi++; if (qi >= qs.length) nextPart(); else show(); };
+    });
+  };
+  show();
+}
+
+/* ordenar */
+function renderOrder(part) {
+  const st = { seq: [], locked: 0, firstDone: false };
+  const pool = shuffle(part.items.map((t, i) => ({ id: i, text: t })));
+  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><h3>El teu informe</h3><div class="seq" id="seq"></div><h3>Blocs desordenats</h3><div class="pool" id="pool"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>Comprova</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+  $("cancel").onclick = () => { modalClose(); C = null; };
+  const draw = () => {
+    $("seq").innerHTML = st.seq.map((it, i) => `<button type="button" class="chip ${i < st.locked ? "good" : ""}" data-i="${i}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">Toca els blocs de sota en ordre</span>`;
+    $("pool").innerHTML = pool.filter(it => !st.seq.includes(it)).map(it => `<button type="button" class="chip" data-id="${it.id}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">Tots col·locats</span>`;
+    $("chk").disabled = st.seq.length !== part.items.length;
+    $("seq").querySelectorAll(".chip").forEach(el => el.onclick = () => { const i = +el.dataset.i; if (i < st.locked) return; st.seq.splice(i, 1); SFX.talk(); draw(); });
+    $("pool").querySelectorAll(".chip").forEach(el => el.onclick = () => { st.seq.push(pool.find(p => p.id === +el.dataset.id)); SFX.talk(); draw(); });
+  };
+  $("chk").onclick = () => {
+    C.stats.checks++;
+    const res = st.seq.map((it, i) => it.id === i);
+    if (!st.firstDone) {
+      st.firstDone = true; C.stats.total += part.items.length; C.stats.firstOk += res.filter(Boolean).length;
+      st.seq.forEach((it, i) => { if (it.id !== i) C.stats.errors.push({ q: "Bloc " + (i + 1) + " de l'informe", given: it.text, correct: part.items[i], why: "Ordre de l'informe: " + part.items.join(" · ") + "." }); });
+    }
+    const firstBad = res.indexOf(false);
+    if (firstBad === -1) {
+      st.locked = st.seq.length; draw(); SFX.ok();
+      $("fb").innerHTML = `<div class="fb ok"><b>Informe en ordre!</b></div>`; $("chk").textContent = "Continua"; $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus(); return;
+    }
+    SFX.bad(); feeling = 8;
+    st.seq = st.seq.slice(0, firstBad); st.locked = firstBad; draw();
+    $("fb").innerHTML = `<div class="fb ko"><b>El bloc ${firstBad + 1} no va aquí.</b> Els blocs ben posats fins al primer error es queden; la resta han tornat a la safata. Pensa: què ha de trobar primer qui obre l'informe?</div>`;
+  };
+  draw();
+}
+
+function finishChallenge() {
+  const k = C.k, q = QUESTS[k], st = C.stats;
+  const pct = st.total ? Math.round(100 * st.firstOk / st.total) : 0;
+  if (C.practice) {
+    modalOpen(`<div class="eyebrow">Pràctica · no puntua</div><h2>Prova repassada</h2><p>Encerts a la primera: <b>${st.firstOk}/${st.total}</b> (${pct}%). La puntuació oficial és la de la primera vegada.</p><div class="row"><button class="btn" id="ok" type="button">Torna a Vilabit</button></div>`);
+    $("ok").onclick = () => { modalClose(); }; C = null; return;
+  }
+  st.ms = Date.now() - st.startedAt; delete st.startedAt;
+  S.stats[k] = st; S.seals[k] = true; addXp(60 + pct * 1.4); save(); hud();
+  SFX.seal(); confetti();
+  const npc = npcById[q.npc];
+  modalOpen(`<div class="eyebrow">Segell aconseguit</div><h2>Segell ${k} · ${esc(q.nom)}</h2><div class="row" style="gap:18px;align-items:center"><div class="seal on" style="width:72px;height:72px;font-size:22px">${k}</div><div><div class="big">${pct}%</div><div class="eyebrow">encerts a la primera (${st.firstOk}/${st.total})</div></div></div><p>${esc(CA[k])}</p><p><b>Idea clau:</b> ${esc(q.idea)}</p><p>${Object.keys(S.seals).length === 7 ? "<b>Ja tens els set segells!</b> Ves a l'Ajuntament i parla amb l'Alcaldessa." : `Et falten ${7 - Object.keys(S.seals).length} segells.`}</p><div class="row"><button class="btn" id="ok" type="button">Torna a Vilabit</button></div>`);
+  $("ok").onclick = () => { modalClose(); }; $("ok").focus();
+  C = null;
+}
+
+/* ================= BOSS ================= */
+let B = null;
+function openBoss() {
+  if (!S.boss) S.boss = { attempts: 0, won: false, firstOk: 0, total: BOSS.length, errors: [], scored: false };
+  S.boss.attempts++;
+  B = { i: 0, hearts: 3, hype: 100, qs: shuffle(BOSS).map(q => ({ ...q, order: shuffle(q.opts.map((o, i) => i)) })), first: !S.boss.scored, ok: 0, errs: [] };
+  renderBoss();
+}
+function renderBoss() {
+  const q = B.qs[B.i];
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">Assemblea de Vilabit · debat final${S.boss.attempts > 1 ? " · intent " + S.boss.attempts : ""}</div><h2>Debat contra en Fum</h2></div><span class="pill">Afirmació ${B.i + 1}/${B.qs.length}</span></div>
+  <div class="boss-grid"><canvas class="boss-por" id="bpor" width="120" height="120"></canvas><div style="min-width:0;display:grid;gap:8px">
+  <div class="row" style="justify-content:space-between"><span class="eyebrow">Fum (hype)</span><span class="hearts" aria-label="Credibilitat">${"♥".repeat(B.hearts)}${"♡".repeat(3 - B.hearts)}</span></div>
+  <div class="bar"><i style="width:${B.hype}%"></i></div>
+  <div class="bubble">«${esc(q.claim)}»</div></div></div>
+  <p class="q">Com li respons?</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>Continua</button><button class="btn ghost" id="cancel" type="button">Abandona el debat</button></div>`);
+  portrait($("bpor"), npcById.fum);
+  $("cancel").onclick = () => { modalClose(); B = null; save(); };
+  $("win").querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    const oi = +b.dataset.oi, ok = oi === q.a;
+    $("win").querySelectorAll(".opt").forEach(x => { x.disabled = true; if (+x.dataset.oi === q.a) x.classList.add("good"); });
+    if (ok) { B.ok++; B.hype = Math.max(0, 100 - Math.round(100 * B.ok / B.qs.length)); SFX.ok(); }
+    else { B.hearts--; b.classList.add("wrong"); SFX.bad(); feeling = 14; }
+    if (!ok) B.errs.push({ q: "En Fum: «" + q.claim + "»", given: q.opts[oi], correct: q.opts[q.a], why: q.why });
+    $("win").querySelector(".bar i").style.width = B.hype + "%";
+    $("win").querySelector(".hearts").textContent = "♥".repeat(Math.max(0, B.hearts)) + "♡".repeat(3 - Math.max(0, B.hearts));
+    $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? "Rebatut! En Fum s'encongeix." : "En Fum somriu... Has perdut credibilitat."}</b> ${esc(q.why)}</div>`;
+    const nx = $("nxt"); nx.hidden = false; nx.focus();
+    nx.onclick = () => {
+      if (B.hearts <= 0) return bossLost();
+      B.i++; if (B.i >= B.qs.length) bossWon(); else renderBoss();
+    };
+  });
+}
+function scoreBoss() { if (B && B.first && !S.boss.scored) { S.boss.scored = true; S.boss.firstOk = B.ok; S.boss.errors = B.errs; } }
+function bossLost() {
+  scoreBoss(); save();
+  modalOpen(`<div class="eyebrow">L'assemblea dubta</div><h2>En Fum ha guanyat aquest debat</h2><p>Has perdut tota la credibilitat. Repassa els cartells i el Còdex i torna-ho a provar: les preguntes canvien d'ordre.</p><p>La puntuació del debat és la del primer intent.</p><div class="row"><button class="btn" id="again" type="button">Torna-ho a provar</button><button class="btn ghost" id="later" type="button">Ara no</button></div>`);
+  $("again").onclick = openBoss; $("later").onclick = () => { modalClose(); };
+}
+function bossWon() {
+  scoreBoss(); S.boss.won = true; S.boss.hearts = B.hearts; S.finished = true; S.finishedAt = Date.now();
+  addXp(300 + B.hearts * 50); save(); hud(); SFX.seal(); confetti(); confetti();
+  const f = npcById.fum; f.fx = -3; f.fy = -3; f.rx = -3; f.ry = -3; // marxa del poble
+  endScreen(true);
+}
+
+/* ================= RESULTS & PDF ================= */
+function results() {
+  const rows = QUEST_ORDER.map(k => {
+    const st = S.stats[k]; const pct = st && st.total ? Math.round(100 * st.firstOk / st.total) : null;
+    return { k, ca: CA[k], prova: QUESTS[k].nom, st, pct };
+  });
+  const b = S.boss; const bossPct = b && b.scored ? Math.round(100 * b.firstOk / b.total) : null;
+  const vals = rows.map(r => r.pct ?? 0).concat([bossPct ?? 0]);
+  const global = Math.round(vals.reduce((a, c) => a + c, 0) / vals.length);
+  return { rows, bossPct, global };
+}
+function level(p) {
+  if (p == null) return { t: "Pendent", c: "n" };
+  if (p >= 90) return { t: "Excel·lent", c: "a" };
+  if (p >= 70) return { t: "Assolit", c: "b" };
+  if (p >= 50) return { t: "En procés", c: "c" };
+  return { t: "Cal repassar", c: "d" };
+}
+function rank(g) { return g >= 90 ? "Mestre/a de la transformació digital" : g >= 75 ? "Consultor/a digital" : g >= 60 ? "Tècnic/a en digitalització" : "Aprenent digital"; }
+function fmtMin(ms) { const m = Math.max(1, Math.round(ms / 60000)); return m + " min"; }
+function resultsTable() {
+  const R = results();
+  return `<div class="tbl-wrap"><table class="res"><thead><tr><th>Criteri</th><th>Prova</th><th>Encerts a la primera</th><th>%</th><th>Nivell</th></tr></thead><tbody>${R.rows.map(r => { const l = level(r.pct); return `<tr><td><b>${r.k}</b> ${esc(r.ca)}</td><td>${esc(r.prova)}</td><td>${r.st ? r.st.firstOk + "/" + r.st.total : "—"}</td><td>${r.pct ?? "—"}</td><td><span class="lvl ${l.c}">${l.t}</span></td></tr>`; }).join("")}<tr><td><b>Debat</b> Integra tots els criteris</td><td>Debat contra en Fum</td><td>${S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "—"}</td><td>${R.bossPct ?? "—"}</td><td><span class="lvl ${level(R.bossPct).c}">${level(R.bossPct).t}</span></td></tr></tbody></table></div>`;
+}
+function endScreen() {
+  const R = results();
+  modalOpen(`<div class="eyebrow">Vilabit és a salvo del fum</div><h2>Has guanyat el debat!</h2><p>En Fum ha recollit els fullets i ha marxat del poble. L'Alcaldessa t'ha nomenat <b>${esc(rank(R.global))}</b>.</p>
+  <div class="stats-row"><div><div class="big">${R.global}</div><div class="eyebrow">puntuació sobre 100</div></div><div><div class="big">${Object.keys(S.seals).length}/7</div><div class="eyebrow">segells</div></div><div><div class="big">${S.fitxes.length}/11</div><div class="eyebrow">fitxes THD</div></div><div><div class="big">${S.xp}</div><div class="eyebrow">XP</div></div></div>
+  ${resultsTable()}<p>Descarrega l'informe en PDF i lliura'l al teu professor o professora.</p><div id="pdfMsg"></div>
+  <div class="row"><button class="btn" id="pdf" type="button">Descarrega l'informe PDF</button><button class="btn ghost" id="cont" type="button">Continua explorant</button></div>`);
+  $("pdf").onclick = makePdf; $("cont").onclick = () => modalClose(); $("pdf").focus();
+}
+function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase().padStart(7, "0").slice(-7); }
+function pdfTxt(s) { return String(s).replace(/→/g, "->").replace(/[−–—]/g, "-").replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/…/g, "...").replace(/♥/g, "*").replace(/[^\x00-\xFF]/g, ""); }
+let dlCap = null;
+function initDownloads() { try { if (window.claude && typeof window.claude.use === "function") dlCap = window.claude.use("downloads").catch(() => null); } catch (e) { dlCap = null; } }
+async function makePdf() {
+  const msg = $("pdfMsg");
+  if (!window.jspdf || !window.jspdf.jsPDF) { if (msg) msg.innerHTML = `<div class="fb ko">No s'ha pogut carregar el generador de PDF. Comprova la connexió a Internet i torna-ho a provar.</div>`; return; }
+  const doc = buildPdf();
+  const fname = "Vilabit_RA2_" + (S.name || "alumne").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") + ".pdf";
+  const cap = dlCap ? await dlCap : null;
+  if (cap) {
+    try { await cap.save({ filename: fname, data: doc.output("blob") }); if (msg) msg.innerHTML = `<div class="fb ok">Informe desat.</div>`; }
+    catch (e) { if (msg) msg.innerHTML = `<div class="fb ko">${e && e.code === "declined" ? "Has cancel·lat la descàrrega." : "No s'ha pogut desar l'informe en aquesta vista."}</div>`; }
+    return;
+  }
+  doc.save(fname);
+  if (msg) msg.innerHTML = `<div class="fb ok">Informe descarregat: <b>${esc(fname)}</b>.</div>`;
+}
+function buildPdf() {
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const R = results(); const now = new Date(S.finishedAt || Date.now());
+  const date = now.toLocaleDateString("ca-ES") + " " + now.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
+  const code = hash(JSON.stringify([S.name, S.group, R.global, R.rows.map(r => r.pct), R.bossPct, S.started]));
+  const M = 16, PW = 210, CW = PW - 2 * M; let y = 0;
+  const navy = [35, 40, 72], red = [225, 33, 29], gold = [214, 160, 20], ink = [29, 33, 64], grey = [110, 114, 140];
+  const tx = (s, x, yy, o) => doc.text(pdfTxt(s), x, yy, o);
+  const footer = () => { const n = doc.internal.getNumberOfPages(); for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...grey); tx(`Els Segells de Vilabit · Joc formatiu del MP 1665 · Codi de verificació ${code}`, M, 289); tx(`Pàgina ${i} de ${n}`, PW - M, 289, { align: "right" }); } };
+  const need = (h) => { if (y + h > 280) { doc.addPage(); y = 18; } };
+  // capçalera
+  doc.setFillColor(...navy); doc.rect(0, 0, PW, 34, "F"); doc.setFillColor(...red); doc.rect(0, 34, PW, 2, "F");
+  doc.setTextColor(255, 204, 77); doc.setFont("helvetica", "bold"); doc.setFontSize(22); tx("ELS SEGELLS DE VILABIT", M, 16);
+  doc.setTextColor(255, 246, 227); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  tx("Informe de partida · MP 1665 Digitalització aplicada als sectors productius", M, 24); tx("RA2 · Tecnologies habilitadores digitals (THD)", M, 29.5);
+  y = 46;
+  doc.setTextColor(...ink); doc.setFontSize(10.5);
+  const kv = [["Alumne/a", S.name || "(sense nom)"], ["Grup", S.group || "-"], ["Data", date], ["Temps de joc", fmtMin(S.playMs)]];
+  kv.forEach(([k, v], i) => { const x = M + (i % 2) * (CW / 2); const yy = y + Math.floor(i / 2) * 7; doc.setFont("helvetica", "bold"); tx(k + ":", x, yy); doc.setFont("helvetica", "normal"); tx(v, x + 28, yy); });
+  y += 18;
+  // caixa de puntuació
+  doc.setDrawColor(...navy); doc.setLineWidth(0.6); doc.setFillColor(248, 246, 238); doc.roundedRect(M, y, CW, 34, 3, 3, "FD");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(34); doc.setTextColor(...red); tx(String(R.global), M + 8, y + 22);
+  doc.setFontSize(10); doc.setTextColor(...grey); tx("puntuació global / 100", M + 8, y + 29);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...ink); tx(rank(R.global), M + 62, y + 11);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  tx(`Segells: ${Object.keys(S.seals).length}/7   ·   Fitxes THD: ${S.fitxes.length}/11   ·   Cartells llegits: ${S.cartells.length}/${CARTELLS.length}   ·   XP: ${S.xp}`, M + 62, y + 18);
+  tx(`Debat final: ${S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total + " al primer intent · " + S.boss.attempts + (S.boss.attempts === 1 ? " intent" : " intents") : "no fet"}`, M + 62, y + 24);
+  QUEST_ORDER.forEach((k, i) => { const cx = M + 66 + i * 15.5, cy = y + 30; if (S.seals[k]) { doc.setFillColor(255, 204, 77); doc.setDrawColor(...gold); doc.circle(cx, cy, 3.2, "FD"); } else { doc.setDrawColor(...grey); doc.circle(cx, cy, 3.2, "S"); } doc.setFontSize(6.5); doc.setTextColor(...ink); tx(k, cx, cy + 1, { align: "center" }); });
+  y += 44;
+  // RA
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Resultat d'aprenentatge", M, y); y += 5.5;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...ink);
+  const raL = doc.splitTextToSize(pdfTxt(RA2), CW); doc.text(raL, M, y); y += raL.length * 4.3 + 5;
+  // taula
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Resultats per criteri d'avaluació", M, y); y += 4;
+  const cols = [{ t: "Criteri", w: 82 }, { t: "Prova del joc", w: 40 }, { t: "Encerts", w: 18 }, { t: "%", w: 12 }, { t: "Nivell", w: 26 }];
+  const rowH = (cells) => Math.max(...cells.map((c, i) => doc.splitTextToSize(pdfTxt(c), cols[i].w - 3).length)) * 4 + 3.5;
+  const drawRow = (cells, headRow, shade) => {
+    doc.setFont("helvetica", headRow ? "bold" : "normal"); doc.setFontSize(headRow ? 9 : 8.6);
+    const h = rowH(cells); need(h);
+    if (headRow) { doc.setFillColor(...red); doc.rect(M, y, CW - 4, h, "F"); doc.setTextColor(255, 255, 255); }
+    else { if (shade) { doc.setFillColor(243, 245, 246); doc.rect(M, y, CW - 4, h, "F"); } doc.setTextColor(...ink); }
+    let x = M; cells.forEach((c, i) => { const L = doc.splitTextToSize(pdfTxt(c), cols[i].w - 3); doc.text(L, x + 1.5, y + 4.6); x += cols[i].w; });
+    doc.setDrawColor(201, 211, 214); doc.setLineWidth(0.2); doc.line(M, y + h, M + CW - 4, y + h);
+    y += h;
+  };
+  drawRow(cols.map(c => c.t), true);
+  R.rows.forEach((r, i) => drawRow([r.k + " " + r.ca, r.prova, r.st ? r.st.firstOk + "/" + r.st.total : "-", r.pct == null ? "-" : String(r.pct), level(r.pct).t], false, i % 2 === 1));
+  drawRow(["Debat final (integra el RA2)", "Debat contra en Fum", S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "-", R.bossPct == null ? "-" : String(R.bossPct), level(R.bossPct).t], false, true);
+  y += 4; doc.setFontSize(8); doc.setTextColor(...grey); doc.setFont("helvetica", "italic");
+  const nota = doc.splitTextToSize(pdfTxt("Encerts = respostes correctes al primer intent de cada prova. La puntuació global és la mitjana dels set criteris i del debat. Nivells: Excel·lent 90-100 · Assolit 70-89 · En procés 50-69 · Cal repassar 0-49."), CW); doc.text(nota, M, y + 2); y += nota.length * 3.6 + 6;
+  // errors
+  const errs = [];
+  QUEST_ORDER.forEach(k => (S.stats[k]?.errors || []).forEach(e => errs.push({ k, ...e })));
+  (S.boss?.errors || []).forEach(e => errs.push({ k: "Debat", ...e }));
+  need(14); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Per repassar", M, y); y += 5.5;
+  doc.setFontSize(9); doc.setTextColor(...ink);
+  if (!errs.length) { doc.setFont("helvetica", "normal"); tx("Cap error al primer intent. Excel·lent feina!", M, y); y += 6; }
+  errs.forEach(e => {
+    doc.setFont("helvetica", "bold"); const l1 = doc.splitTextToSize(pdfTxt(`[${e.k}] ${e.q}`), CW);
+    doc.setFont("helvetica", "normal"); const l2 = doc.splitTextToSize(pdfTxt(`Has respost: ${e.given}  ·  Correcte: ${e.correct}`), CW - 4);
+    doc.setFont("helvetica", "italic"); const l3 = doc.splitTextToSize(pdfTxt(e.why), CW - 4);
+    need((l1.length + l2.length + l3.length) * 4 + 4);
+    doc.setFont("helvetica", "bold"); doc.setTextColor(...ink); doc.text(l1, M, y); y += l1.length * 4;
+    doc.setFont("helvetica", "normal"); doc.setTextColor(...red); doc.text(l2, M + 4, y); y += l2.length * 4;
+    doc.setFont("helvetica", "italic"); doc.setTextColor(...grey); doc.text(l3, M + 4, y); y += l3.length * 4 + 2.5;
+  });
+  // fitxes
+  need(20); y += 2; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Fitxes THD consultades", M, y); y += 5.5;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...ink);
+  const fl = doc.splitTextToSize(pdfTxt(FITXES.map(f => (S.fitxes.includes(f.id) ? "[x] " : "[ ] ") + f.nom).join("   ")), CW); need(fl.length * 4.2); doc.text(fl, M, y); y += fl.length * 4.2 + 4;
+  footer();
+  return doc;
+}
+
+/* ================= CODEX & MISSIONS ================= */
+function openCodex() {
+  if (mode === "dialog" || C || B) return;
+  const cards = FITXES.map(f => S.fitxes.includes(f.id)
+    ? `<div class="card"><h4>${esc(f.nom)}</h4><div class="eyebrow">${esc(f.en)}</div><dl><dt>Què és</dt><dd>${esc(f.frase)}</dd><dt>Aporta</dt><dd>${esc(f.aporta)}</dd><dt>Pesa</dt><dd>${esc(f.pesa)}</dd><dt>Compte</dt><dd>${esc(f.compte)}</dd></dl></div>`
+    : `<div class="card locked"><h4>???</h4><p>Fitxa no trobada. Pista: ${esc(f.lloc)}.</p></div>`).join("");
+  const ideas = QUEST_ORDER.filter(k => S.seals[k]).map(k => `<li><b>${k}</b> ${esc(QUESTS[k].idea)}</li>`).join("");
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">Les teves notes</div><h2>Còdex de les THD</h2></div><button class="btn ghost" id="x" type="button">Tanca</button></div><p>${S.fitxes.length} de 11 fitxes trobades.</p><div class="codex">${cards}</div><h3>Idees clau dels segells</h3>${ideas ? `<ul>${ideas}</ul>` : "<p>Encara no tens cap segell.</p>"}`);
+  $("x").onclick = modalClose;
+}
+function openQuests() {
+  if (mode === "dialog" || C || B) return;
+  const rows = QUEST_ORDER.map(k => { const st = S.stats[k]; const pct = st ? Math.round(100 * st.firstOk / st.total) : null; const l = level(pct);
+    return `<tr><td><b>${k}</b></td><td>${esc(QUESTS[k].nom)}<br><span class="eyebrow">${esc(QUESTS[k].lloc)}</span></td><td>${S.seals[k] ? "Segell aconseguit" : (k === "2.1" && S.fitxes.length < 11 ? `Busca fitxes (${S.fitxes.length}/11)` : "Pendent")}</td><td><span class="lvl ${l.c}">${pct == null ? "—" : pct + "%"}</span></td></tr>`; }).join("");
+  const done = S.boss?.won;
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">${esc(S.name || "")}${S.group ? " · " + esc(S.group) : ""}</div><h2>Missions</h2></div><button class="btn ghost" id="x" type="button">Tanca</button></div>
+  <div class="tbl-wrap"><table class="res"><thead><tr><th>CA</th><th>Missió</th><th>Estat</th><th>Encerts</th></tr></thead><tbody>${rows}<tr><td><b>Final</b></td><td>Debat contra en Fum<br><span class="eyebrow">Ajuntament (Alcaldessa)</span></td><td>${done ? "Guanyat" : Object.keys(S.seals).length === 7 ? "Disponible" : "Calen els 7 segells"}</td><td>${S.boss?.scored ? `<span class="lvl ${level(results().bossPct).c}">${results().bossPct}%</span>` : "—"}</td></tr></tbody></table></div>
+  <div id="pdfMsg"></div><div class="row" style="margin-top:12px"><button class="btn" id="pdf" type="button" ${done ? "" : "disabled"}>Descarrega l'informe PDF</button>${done ? "" : `<span class="eyebrow">Disponible en guanyar el debat final</span>`}<button class="btn ghost" id="reset" type="button">Nova partida</button></div><div id="confirmReset"></div>`);
+  $("x").onclick = modalClose; if (done) $("pdf").onclick = makePdf;
+  $("reset").onclick = () => { $("confirmReset").innerHTML = `<div class="fb ko">Segur? Es perdrà la partida d'aquest navegador. <button class="btn" id="yes" type="button">Sí, comença de nou</button></div>`; $("yes").onclick = () => { clearSave(); location.reload(); }; };
+}
+
+/* ================= TITLE ================= */
+function titleScreen() {
+  const saved = load();
+  mode = "title";
+  modalOpen(`<div class="title-grid"><div><div class="eyebrow">MP 1665 · RA2 · Tecnologies habilitadores digitals</div><div class="logo">ELS SEGELLS<br>DE VILABIT</div>
+  <p>En Fum, un venedor de «tecnologia miraculosa», vol enredar tot el poble. Ajuda els veïns, troba les 11 fitxes de les THD, guanya els <b>set segells</b> i desmunta els seus trucs a l'assemblea.</p>
+  <p class="keys"><kbd>←↑↓→</kbd> o <kbd>WASD</kbd> per moure't · <kbd>Espai</kbd> per parlar i mirar · <kbd>C</kbd> Còdex · <kbd>Q</kbd> Missions</p></div>
+  <div style="display:grid;gap:12px"><canvas class="title-art" id="tart" width="320" height="192"></canvas>
+  ${saved && saved.introDone ? `<div class="fb">Hi ha una partida desada de <b>${esc(saved.name || "sense nom")}</b> (${Object.keys(saved.seals || {}).length}/7 segells).</div><div class="row"><button class="btn" id="cont" type="button">Continua la partida</button><button class="btn ghost" id="new" type="button">Partida nova</button></div>` : ""}
+  <form id="startF" ${saved && saved.introDone ? "hidden" : ""} style="display:grid;gap:10px">
+   <div class="field"><label for="fName">Nom i cognom (sortirà a l'informe PDF)</label><input id="fName" maxlength="60" autocomplete="name" required></div>
+   <div class="field"><label for="fGroup">Grup</label><select id="fGroup"><option value="">Tria el grup</option>${["AFI1", "CI1", "GAT1", "MK1A", "MK1B", "TR1", "Altres"].map(g => `<option>${g}</option>`).join("")}</select></div>
+   <div id="fErr"></div><button class="btn" type="submit">Comença l'aventura</button></form></div></div>`);
+  drawTitleArt();
+  if (saved && saved.introDone) {
+    $("cont").onclick = () => { S = Object.assign(newState(), saved); restorePlayer(); startPlay(false); };
+    $("new").onclick = () => { $("startF").hidden = false; $("fName").focus(); };
+  } else setTimeout(() => $("fName").focus(), 50);
+  $("startF").onsubmit = (e) => {
+    e.preventDefault();
+    const name = $("fName").value.trim(), group = $("fGroup").value;
+    if (!name) { $("fErr").innerHTML = `<div class="fb ko">Escriu el teu nom: sortirà a l'informe que lliuraràs.</div>`; return; }
+    S = newState(); S.name = name; S.group = group; S.started = Date.now(); restorePlayer(); startPlay(true);
+  };
+}
+function drawTitleArt() {
+  const c = $("tart"); if (!c) return; const g = c.getContext("2d"); g.imageSmoothingEnabled = false;
+  g.drawImage(mapCv, 13 * TS, 5 * TS, 10 * TS, 6 * TS, 0, 0, 320, 192);
+  [[npcById.ada, 120, 110], [PLAYER, 160, 120], [npcById.fum, 220, 100], [npcById.bit, 80, 140]].forEach(([n, x, y]) => g.drawImage(sprite(n, "down", 0), x, y, 32, 32));
+  g.fillStyle = "rgba(23,26,51,.25)"; g.fillRect(0, 0, 320, 192);
+}
+function restorePlayer() { pl.x = pl.rx = S.px; pl.y = pl.ry = S.py; pl.dir = S.dir || "up"; pl.moving = false; if (S.boss?.won) { const f = npcById.fum; f.fx = -3; f.fy = -3; f.rx = -3; f.ry = -3; } }
+function startPlay(fresh) {
+  modalClose(); hud(); save();
+  if (fresh || !S.introDone) {
+    say([
+      { who: "ada", text: "{nom}, benvingut/da a Vilabit! Sóc l'Ada, consultora de transformació digital." },
+      { who: "ada", text: "Aquí tot es fa a mà... i ha arribat en Fum, un venedor que vol vendre «tecnologia miraculosa» a tothom." },
+      { who: "fum", text: "Blockchain per a la fleca! IA que ho fa tot sola! Compreu, compreu!" },
+      { who: "ada", text: "A l'assemblea de l'Ajuntament podràs desmuntar els seus trucs. Però l'Alcaldessa demana els set Segells del Consell Digital." },
+      { who: "ada", text: "Cada segell el dona un veí quan l'ajudes amb una part de les tecnologies habilitadores digitals, les THD. Els veïns que t'esperen porten un «!» groc." },
+      { who: "ada", text: "Comença per les 11 fitxes brillants escampades pel poble, una per cada THD. Quan les tinguis totes, torna amb mi." },
+      { who: "ada", text: "Fletxes o WASD per moure't, Espai per parlar i mirar objectes. C obre el Còdex amb el que has après i Q, les missions. Som-hi!" }
+    ], () => { S.introDone = true; save(); });
+  }
+}
+
+/* ================= CONFETTI ================= */
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = $("confetti"); c.hidden = false; c.width = innerWidth; c.height = innerHeight; const g = c.getContext("2d");
+  const parts = Array.from({ length: 120 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - .5) * 14, vy: -Math.random() * 12 - 4, c: ["#ffcc4d", "#e1211d", "#4fd18b", "#6fb7ff", "#ff7ad1"][Math.floor(Math.random() * 5)], s: 4 + Math.random() * 5 }));
+  let n = 0;
+  const step = () => { g.clearRect(0, 0, c.width, c.height); parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .35; g.fillStyle = p.c; g.fillRect(p.x, p.y, p.s, p.s); }); if (++n < 110) requestAnimationFrame(step); else { g.clearRect(0, 0, c.width, c.height); c.hidden = true; } };
+  step();
+}
+
+/* ================= INPUT ================= */
+const KEYMAP = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right" };
+addEventListener("keydown", e => {
+  const tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+  if ((mode === "dialog" || mode === "play") && tag === "BUTTON" && (e.key === " " || e.key === "Enter")) { e.preventDefault(); e.target.blur(); }
+  if (mode === "dialog") {
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); advance(); }
+    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); moveChoice(-1); }
+    else if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); moveChoice(1); }
+    else if (/^[1-9]$/.test(e.key) && D && D.full && D.pages[D.i].choices && D.pages[D.i].choices[+e.key - 1]) choose(+e.key - 1);
+    return;
+  }
+  if (mode === "modal") { if (e.key === "Escape" && !C && !B && $("x")) modalClose(); return; }
+  if (mode !== "play") return;
+  if (KEYMAP[e.key]) { e.preventDefault(); held.delete(KEYMAP[e.key]); held.add(KEYMAP[e.key]); }
+  else if (e.key === " " || e.key === "Enter") { e.preventDefault(); interact(); }
+  else if (e.key === "c" || e.key === "C") openCodex();
+  else if (e.key === "q" || e.key === "Q") openQuests();
+});
+addEventListener("keyup", e => { if (KEYMAP[e.key]) held.delete(KEYMAP[e.key]); });
+addEventListener("blur", () => held.clear());
+document.querySelectorAll(".dpad button").forEach(b => {
+  const d = b.dataset.d;
+  b.addEventListener("pointerdown", e => { e.preventDefault(); if (mode === "play") { held.add(d); } else if (mode === "dialog") moveChoice(d === "up" || d === "left" ? -1 : 1); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, () => held.delete(d)));
+});
+$("bA").addEventListener("click", () => { if (mode === "dialog") advance(); else if (mode === "play") interact(); });
+$("dialog").addEventListener("click", e => { if (e.target.tagName === "BUTTON") return; if (D && D.full && D.pages[D.i].choices) return; advance(); });
+$("bCodex").onclick = () => { if (mode === "play") openCodex(); };
+$("bQuests").onclick = () => { if (mode === "play") openQuests(); };
+$("bSound").onclick = () => { sound = !sound; $("bSound").textContent = "So: " + (sound ? "sí" : "no"); $("bSound").setAttribute("aria-pressed", String(sound)); };
+
+/* ================= BOOT ================= */
+function start(hotData) {
+  renderMap();
+  initDownloads();
+  if (hotData && hotData.S && hotData.S.introDone) { S = Object.assign(newState(), hotData.S); restorePlayer(); modalClose(); hud(); }
+  else titleScreen();
+  hud();
+  requestAnimationFrame(loop);
+  // els rètols fan servir la font de píxel: es tornen a pintar quan arriba
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { renderMap(); drawTitleArt(); });
+}
+try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (e) { }
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+window.__vilabit = { get S() { return S; }, QUESTS, openChallenge, openBoss, buildPdf, results, talk, npcById, pl, walkable, map, FITXES, OBJECTS, NPCS, BUILDINGS };
+
+</script>
