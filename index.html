@@ -144,6 +144,11 @@ table.res th { font-family: var(--f-display); color: var(--gold); font-weight: 7
 .lvl { font-family: var(--f-display); font-size: 13px; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .lvl.a { background: #1f4a3a; color: var(--ok); } .lvl.b { background: #2c3f5c; color: var(--sel); } .lvl.c { background: #4d3b1d; color: var(--gold); } .lvl.d { background: #5a2630; color: var(--bad); } .lvl.n { background: var(--panel-2); color: var(--muted); }
 .big { font-family: var(--f-display); font-size: clamp(40px, 7vw, 64px); color: var(--gold); line-height: 1; }
+.langs { display: inline-flex; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+.lang { background: var(--panel-2); border: 0; padding: 6px 14px; cursor: pointer; font-family: var(--f-display); font-size: 15px; color: var(--muted); }
+.lang + .lang { border-left: 2px solid var(--line); }
+.lang.on { background: var(--gold); color: #3a2a00; font-weight: 700; }
+.lang-btn { min-width: 44px; font-weight: 700; color: var(--gold); }
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 12px 0; }
 .stats-row > div { border-left: 4px solid var(--line); padding-left: 12px; min-width: 0; }
 .stats-row .big { font-size: clamp(30px, 5vw, 46px); }
@@ -160,18 +165,19 @@ table.res th { font-family: var(--f-display); color: var(--gold); font-weight: 7
 <div id="app">
   <header class="hud">
     <div class="brand">VILABIT<small>RA2 · THD</small></div>
-    <div class="seals" id="seals" aria-label="Segells aconseguits"></div>
-    <div class="stat" title="Fitxes THD trobades">Fitxes <b id="sFitxes">0/11</b></div>
-    <div class="stat" title="Experiència">XP <b id="sXp">0</b></div>
+    <div class="seals" id="seals" aria-label="Segells aconseguits" data-ta="Segells aconseguits"></div>
+    <div class="stat" title="Fitxes THD trobades" data-tt="Fitxes THD trobades"><span data-t="Fitxes">Fitxes</span> <b id="sFitxes">0/11</b></div>
+    <div class="stat" title="Experiència" data-tt="Experiència">XP <b id="sXp">0</b></div>
     <div class="spacer"></div>
-    <button class="hbtn" id="bCodex" type="button">Còdex <kbd>C</kbd></button>
-    <button class="hbtn" id="bQuests" type="button">Missions <kbd>Q</kbd></button>
+    <button class="hbtn" id="bCodex" type="button"><span data-t="Còdex">Còdex</span> <kbd>C</kbd></button>
+    <button class="hbtn" id="bQuests" type="button"><span data-t="Missions">Missions</span> <kbd>Q</kbd></button>
     <button class="hbtn" id="bSound" type="button" aria-pressed="true">So: sí</button>
+    <button class="hbtn lang-btn" id="bLang" type="button" title="Jugar en castellano">ES</button>
     <div class="goal" id="goal"></div>
   </header>
   <div id="stageWrap">
     <div id="stage">
-      <canvas id="cv" width="800" height="480" aria-label="Mapa de Vilabit"></canvas>
+      <canvas id="cv" width="800" height="480" aria-label="Mapa de Vilabit" data-ta="Mapa de Vilabit"></canvas>
       <div id="dialog" hidden>
         <canvas class="por" id="por" width="64" height="64"></canvas>
         <div class="txt"><div class="who" id="dWho"></div><div class="say" id="dSay"></div><div class="choices" id="dCh"></div></div>
@@ -180,12 +186,12 @@ table.res th { font-family: var(--f-display); color: var(--gold); font-weight: 7
       <div id="toast"></div>
       <div id="touch">
         <div class="dpad">
-          <button class="u" data-d="up" type="button" aria-label="Amunt">▲</button>
-          <button class="l" data-d="left" type="button" aria-label="Esquerra">◀</button>
-          <button class="r" data-d="right" type="button" aria-label="Dreta">▶</button>
-          <button class="d" data-d="down" type="button" aria-label="Avall">▼</button>
+          <button class="u" data-d="up" type="button" aria-label="Amunt" data-ta="Amunt">▲</button>
+          <button class="l" data-d="left" type="button" aria-label="Esquerra" data-ta="Esquerra">◀</button>
+          <button class="r" data-d="right" type="button" aria-label="Dreta" data-ta="Dreta">▶</button>
+          <button class="d" data-d="down" type="button" aria-label="Avall" data-ta="Avall">▼</button>
         </div>
-        <button class="abtn" id="bA" type="button" aria-label="Parla o mira">A</button>
+        <button class="abtn" id="bA" type="button" aria-label="Parla o mira" data-ta="Parla o mira">A</button>
       </div>
     </div>
   </div>
@@ -195,6 +201,7 @@ table.res th { font-family: var(--f-display); color: var(--gold); font-weight: 7
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
+function DATA_CA() {
 /* ============ CONTINGUT DEL JOC (RA2 · THD) ============ */
 const RA2 = "RA2. Caracteritza les tecnologies habilitadores digitals necessàries per a l'adequació/transformació de les empreses a entorns digitals descrivint les seves característiques i aplicacions.";
 
@@ -457,6 +464,520 @@ const BOSS = [
   { claim: "Un bessó digital funciona igual de bé amb dades dolentes!", opts: ["Amb dades dolentes només simula errors: necessita moltes dades i bones.", "Sí, les dades no importen.", "El bessó digital no fa servir dades."], a: 0, why: "Sense dades de qualitat, la simulació no serveix." }
 ];
 
+return { RA2, CA, FITXES, FAMILIES, CARTELLS, QUESTS, QUEST_ORDER, BOSS };
+}
+function DATA_ES() {
+/* ============ CONTENIDO DEL JUEGO (RA2 · THD) · CASTELLANO ============ */
+const RA2 = "RA2. Caracteriza las tecnologías habilitadoras digitales necesarias para la adecuación/transformación de las empresas a entornos digitales describiendo sus características y aplicaciones.";
+
+const CA = {
+  "2.1": "Identifica las principales tecnologías habilitadoras digitales.",
+  "2.2": "Relaciona las THD con el desarrollo de productos y servicios.",
+  "2.3": "Relaciona la importancia de las THD con la economía sostenible y eficiente.",
+  "2.4": "Identifica nuevos mercados generados por las THD.",
+  "2.5": "Analiza la implicación de las THD tanto en la parte de negocio como en la parte de planta.",
+  "2.6": "Identifica las mejoras producidas a causa de la implantación de las tecnologías habilitadoras en relación con los entornos IT y OT.",
+  "2.7": "Elabora un informe que relacione las tecnologías con sus características y áreas de aplicación."
+};
+
+/* Las 11 fichas THD (objetos del mapa) */
+const FITXES = [
+  { id: "iot", kind: "truck", x: 22, y: 23, nom: "Internet de las cosas (IoT)", en: "Internet of Things", obj: "Camión frigorífico con sonda",
+    frase: "Objetos con sensores conectados a Internet que envían datos (y, a veces, reciben órdenes).",
+    exemple: "La sonda de este camión avisa al móvil si la temperatura sube.",
+    aporta: "Convierte el mundo físico en datos. Sin IoT, el resto de tecnologías no tienen datos con los que trabajar.",
+    pesa: "Planta (OT): vigilar máquinas, alarmas, mantenimiento predictivo, trazabilidad.",
+    compte: "Aparatos con la contraseña de fábrica y sin actualizar: puerta de entrada de ataques.", familia: "captar", lloc: "junto al almacén Rutes Delta" },
+  { id: "g5", kind: "antenna", x: 35, y: 18, nom: "Conectividad 5G", en: "5G connectivity", obj: "Antena 5G del puerto",
+    frase: "Red móvil muy rápida, con muy poco retraso (latencia) y capaz de conectar miles de aparatos a la vez.",
+    exemple: "El puerto conecta grúas, camiones y sensores con esta red 5G propia.",
+    aporta: "Conexión fiable donde el cable no llega y el wifi no es suficiente.",
+    pesa: "Planta: muchos sensores a la vez, robots móviles, flotas de vehículos.",
+    compte: "Montar una red privada es caro.", familia: "captar", lloc: "cerca del puerto" },
+  { id: "cloud", kind: "terminal", x: 10, y: 5, nom: "Cloud computing (nube)", en: "Cloud computing", obj: "Terminal de la nube",
+    frase: "Usar servidores, espacio y programas por Internet y pagar solo por lo que usas.",
+    exemple: "La biblioteca guarda el catálogo en la nube: no tiene ningún servidor en el sótano.",
+    aporta: "Sin inversión inicial, crece o se reduce al momento y da a una pyme herramientas de gran empresa.",
+    pesa: "Negocio (IT). A la planta llega con el edge computing.",
+    compte: "Depender de un solo proveedor y facturas que se disparan.", familia: "guardar", lloc: "junto a la Biblioteca" },
+  { id: "bigdata", kind: "archive", x: 3, y: 15, nom: "Big data y analítica", en: "Big data & analytics", obj: "Archivo de tiques del mercado",
+    frase: "Técnicas para guardar y analizar tantos datos que no caben en un Excel.",
+    exemple: "El mercado analiza millones de tiques para decidir qué pone en oferta.",
+    aporta: "Pasar de mirar el pasado a entender el presente y anticipar el futuro.",
+    pesa: "Negocio: clientes, demanda, precios, fraude. En planta, encontrar qué causa los defectos.",
+    compte: "Datos malos dan conclusiones falsas. Las 5 V: volumen, velocidad, variedad, veracidad y valor.", familia: "guardar", lloc: "en el Mercado" },
+  { id: "ia", kind: "oracle", x: 30, y: 12, nom: "Inteligencia artificial (IA)", en: "Artificial intelligence", obj: "Ordenador de la Agencia Píxel",
+    frase: "Programas que aprenden de los datos para predecir, clasificar o crear contenido.",
+    exemple: "Este ordenador predice qué clientes dejarán de comprar.",
+    aporta: "Automatiza tareas repetitivas de «pensar»: clasificar, predecir, redactar borradores.",
+    pesa: "Ambos, sobre todo negocio. En planta: visión artificial y mantenimiento predictivo.",
+    compte: "Sesgos y errores que parecen verdad: hace falta supervisión humana.", familia: "pensar", lloc: "junto a la Agencia Píxel" },
+  { id: "twin", kind: "twin", x: 14, y: 27, nom: "Gemelo digital", en: "Digital twin", obj: "Maqueta digital del almacén",
+    frase: "Una copia digital de una máquina, proceso o edificio que recibe datos reales y permite hacer simulaciones.",
+    exemple: "Rutes Delta prueba aquí una nueva distribución antes de mover ninguna estantería.",
+    aporta: "Probar decisiones antes de tomarlas, sin riesgos ni costes reales.",
+    pesa: "Une IT y OT: necesita datos de la planta y sistemas de negocio.",
+    compte: "Con datos malos, solo simula errores.", familia: "pensar", lloc: "delante del almacén Rutes Delta" },
+  { id: "robot", kind: "robot", x: 12, y: 23, nom: "Robótica y cobots", en: "Robotics & cobots", obj: "Robot de almacén",
+    frase: "Máquinas programables que hacen trabajos físicos. Los cobots trabajan al lado de las personas.",
+    exemple: "Este robot lleva la estantería hasta quien prepara el pedido.",
+    aporta: "Quita trabajos repetitivos, pesados o peligrosos.",
+    pesa: "Planta (OT). En el negocio, baja el coste de cada unidad.",
+    compte: "Seguridad de las personas e inversión. No lo confundas con el RPA, un «robot» de software de oficina.", familia: "actuar", lloc: "al oeste del almacén Rutes Delta" },
+  { id: "print3d", kind: "printer", x: 9, y: 23, nom: "Fabricación aditiva (impresión 3D)", en: "Additive manufacturing", obj: "Impresora 3D del taller",
+    frase: "Fabricar un objeto añadiendo material capa a capa a partir de un archivo 3D.",
+    exemple: "Pere imprime recambios cuando los necesita: el almacén es un archivo.",
+    aporta: "Prototipos rápidos, recambios bajo demanda y productos personalizados.",
+    pesa: "Planta, y también negocio porque permite vender productos a medida.",
+    compte: "Es cara para series largas.", familia: "actuar", lloc: "junto al taller Fred Pere" },
+  { id: "rarv", kind: "headset", x: 28, y: 6, nom: "Realidad aumentada y virtual", en: "Augmented & virtual reality", obj: "Gafas de realidad virtual",
+    frase: "La RA añade información digital a lo que ves; la RV te mete dentro de un mundo simulado.",
+    exemple: "Con estas gafas puedes visitar una suite del hotel antes de reservar.",
+    aporta: "Formación sin riesgo, ayuda de un experto a distancia y venta más atractiva.",
+    pesa: "Ambos: planta (mantenimiento guiado) y negocio (formación, marketing).",
+    compte: "Gafas caras e incómodas durante horas.", familia: "actuar", lloc: "junto al Hotel Llevant" },
+  { id: "ciber", kind: "padlock", x: 18, y: 7, nom: "Ciberseguridad", en: "Cybersecurity", obj: "Candado digital del Ayuntamiento",
+    frase: "Las medidas que protegen sistemas y datos para que estén disponibles, sean correctos y sean privados.",
+    exemple: "Para entrar en el sistema del Ayuntamiento hace falta doble factor.",
+    aporta: "Hace posible todo lo demás: sin confianza, nadie conecta la planta ni sube datos a la nube.",
+    pesa: "Ambos. En la planta, la prioridad es que nada se pare.",
+    compte: "El eslabón más débil son las personas: hace falta formación.", familia: "confiar", lloc: "delante del Ayuntamiento" },
+  { id: "chain", kind: "chainbook", x: 31, y: 18, nom: "Blockchain (registro distribuido)", en: "Blockchain / distributed ledger", obj: "Libro-cadena de aduanas",
+    frase: "Un registro compartido entre varias empresas donde cada anotación queda encadenada y no se puede cambiar sin que se note.",
+    exemple: "Aduanas, transitario y cliente siguen el origen de un lote en el mismo registro.",
+    aporta: "Confianza entre empresas que no se conocen, sin intermediario.",
+    pesa: "Negocio, y sobre todo la relación entre empresas de una cadena.",
+    compte: "A menudo no hace falta: si una sola empresa controla el dato, una base de datos normal es mejor.", familia: "confiar", lloc: "junto a la caseta de Aduanas" }
+];
+
+const FAMILIES = [
+  { id: "captar", label: "Captar", sub: "ver qué pasa" },
+  { id: "guardar", label: "Guardar y analizar", sub: "entender los datos" },
+  { id: "pensar", label: "Pensar", sub: "decidir mejor" },
+  { id: "actuar", label: "Actuar", sub: "hacer en el mundo físico" },
+  { id: "confiar", label: "Confiar", sub: "trabajar seguros" }
+];
+
+/* Carteles de teoría */
+const CARTELLS = [
+  { x: 16, y: 10, titol: "Plaza · ¿Qué es una THD?", text: ["Una tecnología habilitadora digital sirve a CUALQUIER sector y hace posible trabajar de una manera nueva.", "Tres características: TRANSVERSAL (sirve a muchos sectores), COMBINABLE (casi nunca va sola) y TRANSFORMADORA (cambia lo que vende la empresa).", "La cadena del dato: captar → guardar → analizar → decidir → actuar. La ciberseguridad y el blockchain le ponen confianza."] },
+  { x: 3, y: 25, titol: "Taller · Cinco patrones de productos y servicios nuevos", text: ["SERVITIZACIÓN: vender el uso, no la cosa.", "PERSONALIZACIÓN MASIVA: a medida, pero a precio de serie.", "AUTOSERVICIO DIGITAL: el cliente lo hace solo.", "SERVICIO PREDICTIVO: actuar antes de que pase.", "PRODUCTO CONECTADO: sigue dando datos después de venderlo."] },
+  { x: 2, y: 16, titol: "Mercado · Mercados nuevos", text: ["SERVICIO NUEVO: una empresa que ya existía vende algo diferente.", "MERCADO NUEVO: nace un negocio entero que antes no podía existir.", "Ejemplos de mercados nuevos: plataformas entre particulares, ciberseguridad gestionada, economía del dato, salud digital, comercio social, trazabilidad verificable."] },
+  { x: 37, y: 7, titol: "Hotel · Sostenibilidad y eficiencia", text: ["EFICIENTE: hacer lo mismo con menos recursos.", "SOSTENIBLE: que se pueda mantener sin dañar el medio ambiente, a las personas ni la economía.", "BALANCE NETO = lo que ahorra − lo que cuesta (centros de datos, energía de la IA, residuos electrónicos, efecto rebote).", "Sin datos no se puede informar de la sostenibilidad."] },
+  { x: 31, y: 20, titol: "Puerto · ¿Negocio o planta?", text: ["NEGOCIO = entorno IT: la oficina, la información (ventas, contabilidad, clientes).", "PLANTA = entorno OT: donde pasan las cosas físicas (almacén, muelle, cocina del hotel, camión).", "El blockchain casi no toca la planta; la robótica casi no toca el negocio; ciberseguridad, IA y gemelo digital tocan ambos."] },
+  { x: 21, y: 27, titol: "Almacén · Antes → después", text: ["Explica cada mejora en dos columnas: ANTES y DESPUÉS, y di qué tecnología la ha hecho posible.", "IT: servidores propios → nube · informe mensual → indicadores en tiempo real · facturas a mano → IA + RPA.", "OT: rondas a pie → sensores · reparar cuando se estropea → mantenimiento predictivo · revisar a ojo → visión artificial."] },
+  { x: 2, y: 7, titol: "Biblioteca · El informe de tecnologías", text: ["Un informe de THD relaciona cada tecnología con sus características y con el área donde se aplica.", "Diez bloques: portada · objetivo · contexto de la empresa · ficha de cada tecnología · tabla de síntesis · prioridades justificadas · impacto en IT y OT · sostenibilidad · conclusiones · fuentes.", "La pregunta clave: ¿qué problema de esta empresa resuelve cada tecnología?"] }
+];
+
+/* Misiones: una por criterio de evaluación */
+const QUESTS = {
+  "2.1": {
+    npc: "ada", nom: "Las once fichas", lloc: "Plaza (Ada)",
+    idea: "Una THD sirve a cualquier sector y hace posible trabajar de una manera nueva. Las 11 en 5 familias: Captar (IoT, 5G) · Guardar y analizar (Cloud, Big data) · Pensar (IA, Gemelo digital) · Actuar (Robótica, Impresión 3D, RA y RV) · Confiar (Ciberseguridad, Blockchain).",
+    parts: [
+      { type: "classify", titol: "Clasifica las 11 THD en familias", prompt: "Toca una tecnología y después la familia donde va. Cuando las tengas todas, pulsa «Comprueba».",
+        bins: FAMILIES.map(f => ({ id: f.id, label: f.label, sub: f.sub })),
+        items: FITXES.map(f => ({ id: f.id, text: f.nom.replace(/ \(.*\)/, ""), bin: f.familia, why: f.nom + ": " + f.frase })) },
+      { type: "mcq", titol: "Las tres características", questions: [
+        { q: "¿Por qué se llaman tecnologías «habilitadoras»?", opts: ["Porque hacen posibles maneras nuevas de trabajar en cualquier sector", "Porque solo las puede usar personal habilitado", "Porque las subvenciona la Administración"], a: 0, why: "Habilitan: hacen posibles cosas que antes no se podían hacer, en cualquier sector." },
+        { q: "El mismo sensor de temperatura sirve a un hotel, a un camión y a un almacén. ¿Qué característica es?", opts: ["Transversal", "Combinable", "Transformadora"], a: 0, why: "Transversal: sirve a muchos sectores diferentes." },
+        { q: "«El IoT mide, la nube guarda el dato y la IA predice.» ¿Qué característica es?", opts: ["Combinable", "Transversal", "Transformadora"], a: 0, why: "Combinable: las THD casi nunca van solas, trabajan en equipo." },
+        { q: "Un fabricante deja de vender máquinas y pasa a vender horas de funcionamiento. ¿Qué característica es?", opts: ["Transformadora", "Transversal", "Combinable"], a: 0, why: "Transformadora: cambia lo que vende la empresa, no solo cómo lo hace." }
+      ] }
+    ]
+  },
+  "2.2": {
+    npc: "pere", nom: "La crisis de las cámaras", lloc: "Taller Fred Pere",
+    idea: "Las THD no solo hacen las cosas más rápidas: cambian lo que vende la empresa. Cinco patrones: servitización, personalización masiva, autoservicio digital, servicio predictivo y producto conectado.",
+    parts: [
+      { type: "classify", titol: "Cada caso, con su patrón", prompt: "Relaciona cada caso con el patrón de producto o servicio nuevo.",
+        bins: [{ id: "serv", label: "Servitización" }, { id: "pers", label: "Personalización masiva" }, { id: "auto", label: "Autoservicio digital" }, { id: "pred", label: "Servicio predictivo" }, { id: "conn", label: "Producto conectado" }],
+        items: [
+          { id: "a", text: "Antes vendía cámaras frigoríficas. Ahora cobra por horas de frío garantizadas.", bin: "serv", why: "Servitización: vender el uso o el resultado, no el producto." },
+          { id: "b", text: "Una zapatería escanea el pie e imprime plantillas a medida a precio de serie.", bin: "pers", why: "Personalización masiva: producto a medida a precio de serie (impresión 3D + datos)." },
+          { id: "c", text: "El hotel deja hacer el registro con el móvil y abrir la habitación con llave digital.", bin: "auto", why: "Autoservicio digital: el cliente hace solo lo que antes hacía un empleado." },
+          { id: "d", text: "El fabricante avisa al cliente de que su máquina fallará dentro de dos semanas.", bin: "pred", why: "Servicio predictivo: actuar antes de que pase el problema (IoT + big data + IA)." },
+          { id: "e", text: "Un contenedor informa de su temperatura durante todo el viaje.", bin: "conn", why: "Producto conectado: sigue dando datos y valor después de venderse." }
+        ] },
+      { type: "mcq", titol: "Dos preguntas de Pere", questions: [
+        { q: "¿Cuál es la gran idea del criterio 2.2?", opts: ["Las THD cambian lo que vende la empresa, no solo cómo lo hace", "Las THD solo sirven para abaratar costes", "Las THD sustituyen todos los productos físicos"], a: 0, why: "Las THD hacen posibles productos y servicios nuevos: cambian lo que vende la empresa." },
+        { q: "¿Qué THD hacen posible el servicio predictivo?", opts: ["IoT + big data + IA", "Impresión 3D + RA", "Blockchain + 5G"], a: 0, why: "Los sensores (IoT) dan datos, el big data los procesa y la IA predice el fallo." }
+      ] }
+    ]
+  },
+  "2.4": {
+    npc: "rosa", nom: "¿Mercado nuevo o servicio nuevo?", lloc: "Mercado (Rosa)",
+    idea: "Servicio nuevo: una empresa que ya existía vende algo diferente. Mercado nuevo: nace un negocio entero que antes no podía existir porque la tecnología no lo permitía.",
+    parts: [
+      { type: "classify", titol: "Separa los mercados nuevos", prompt: "¿Es un mercado nuevo o es un servicio nuevo de una empresa que ya existía?",
+        bins: [{ id: "mercat", label: "Mercado nuevo" }, { id: "servei", label: "Servicio nuevo de una empresa que ya existía" }],
+        items: [
+          { id: "a", text: "Plataformas de alojamiento entre particulares", bin: "mercat", why: "Sin móvil, geolocalización y nube este negocio no podía existir: es un mercado nuevo." },
+          { id: "b", text: "Empresas que vigilan 24 horas la ciberseguridad de otras empresas", bin: "mercat", why: "La ciberseguridad gestionada es un mercado creado por la propia digitalización." },
+          { id: "c", text: "Empresas que venden datos e indicadores de mercado", bin: "mercat", why: "Economía del dato: un mercado nuevo que nace del big data y la IA." },
+          { id: "d", text: "Consultas médicas a distancia", bin: "mercat", why: "La salud digital (telemedicina) es un mercado nuevo." },
+          { id: "e", text: "El hotel de siempre ofrece el registro con el móvil", bin: "servei", why: "Es el mismo hotel con un servicio nuevo (autoservicio digital), no un mercado nuevo." },
+          { id: "f", text: "La zapatería del barrio hace plantillas con impresión 3D", bin: "servei", why: "Una empresa existente que vende algo diferente: servicio nuevo." },
+          { id: "g", text: "El transportista envía al cliente la temperatura en directo", bin: "servei", why: "Servicio nuevo (producto conectado) de una empresa que ya existía." },
+          { id: "h", text: "La gestoría lee las facturas con IA", bin: "servei", why: "Mejora y servicio nuevo de una gestoría existente, no un mercado nuevo." }
+        ] },
+      { type: "mcq", titol: "Mercados que cambian", questions: [
+        { q: "¿Qué ha hecho el «revenue management» en el sector hotelero?", opts: ["Ha cambiado un mercado que ya existía: el precio se recalcula varias veces al día", "Ha creado el mercado del alojamiento", "Ha eliminado las reservas por Internet"], a: 0, why: "El alojamiento ya existía; lo que ha cambiado es cómo se fija el precio, según la demanda." },
+        { q: "¿Cuál de estos es un mercado nuevo generado por las THD?", opts: ["El comercio social: vender directamente desde las redes", "Una panadería que abre más horas", "Una tienda que pinta la fachada"], a: 0, why: "El comercio social no existía sin redes sociales y analítica de datos." }
+      ] }
+    ]
+  },
+  "2.3": {
+    npc: "marta", nom: "El balance del hotel", lloc: "Hotel Llevant (Marta)",
+    idea: "Digitalizar puede ayudar al planeta, pero no es automático: hay que hacer el balance entre lo que ahorra y lo que cuesta. Eficiente = hacer lo mismo con menos recursos. Sostenible = que se pueda mantener sin dañar medio ambiente, personas ni economía.",
+    parts: [
+      { type: "mcq", titol: "Dos palabras clave", questions: [
+        { q: "¿Qué quiere decir que una empresa es más EFICIENTE?", opts: ["Que hace lo mismo con menos recursos (energía, material, tiempo)", "Que tiene más ordenadores", "Que vende más caro"], a: 0, why: "Eficiencia = el mismo resultado con menos recursos." },
+        { q: "¿Qué quiere decir SOSTENIBLE?", opts: ["Que se puede mantener sin dañar el medio ambiente, a las personas ni la economía", "Que usa energía solar", "Que tiene el sello verde del Ayuntamiento"], a: 0, why: "Sostenible tiene tres patas: medio ambiente, personas y economía." }
+      ] },
+      { type: "classify", titol: "¿Ahorra o cuesta?", prompt: "Clasifica cada efecto de digitalizar el hotel: ¿es un ahorro (+) o un coste (−)?",
+        bins: [{ id: "mes", label: "Ahorra (+)" }, { id: "menys", label: "Cuesta (−)" }],
+        items: [
+          { id: "a", text: "Apagar clima y luces en las habitaciones vacías", bin: "mes", why: "Medir el consumo y actuar automáticamente ahorra energía." },
+          { id: "b", text: "Optimizar rutas: menos kilómetros en vacío", bin: "mes", why: "Menos kilómetros = menos combustible y menos emisiones." },
+          { id: "c", text: "Firma electrónica: menos papel y menos viajes", bin: "mes", why: "Los documentos digitales ahorran papel y desplazamientos." },
+          { id: "d", text: "Producir según la demanda: menos stock que caduca", bin: "mes", why: "Menos desperdicio y menos residuos." },
+          { id: "e", text: "Electricidad y agua de los centros de datos", bin: "menys", why: "La nube también consume: centros de datos con electricidad y refrigeración." },
+          { id: "f", text: "Energía para entrenar modelos de IA", bin: "menys", why: "Entrenar IA gasta mucha electricidad: es un coste ambiental." },
+          { id: "g", text: "Residuos electrónicos de sensores y gafas", bin: "menys", why: "Los dispositivos acaban siendo residuos electrónicos." },
+          { id: "h", text: "Efecto rebote: como es más barato, se consume más", bin: "menys", why: "El efecto rebote puede comerse el ahorro." }
+        ] },
+      { type: "mcq", titol: "La conclusión de Marta", questions: [
+        { q: "¿Digitalizar siempre es sostenible?", opts: ["No: hay que hacer el balance entre lo que ahorra y lo que cuesta", "Sí, siempre", "Solo si la tecnología es cara"], a: 0, why: "Balance neto = ahorro − coste. No es automático." },
+        { q: "¿Por qué la digitalización es el primer paso para informar de la sostenibilidad?", opts: ["Porque sin datos no se puede informar de nada", "Porque la ley prohíbe el papel", "Porque los informes en papel no valen"], a: 0, why: "Para explicar cuánta energía gastas o cuánto contaminas, primero lo tienes que medir." }
+      ] }
+    ]
+  },
+  "2.5": {
+    npc: "jordi", nom: "¿Oficina o muelle?", lloc: "Puerto (Jordi)",
+    idea: "Negocio = entorno IT (la oficina, la información). Planta = entorno OT (donde pasan las cosas físicas). No todas las THD pesan igual en todas partes: saber decir dónde pesa cada una es el criterio 2.5.",
+    parts: [
+      { type: "mcq", titol: "Primero, los conceptos", questions: [
+        { q: "En un hotel, ¿qué es la «planta»?", opts: ["El lugar donde pasan las cosas físicas: habitaciones, cocina, clima", "Solo las plantas del jardín", "El departamento de informática"], a: 0, why: "La planta (OT) no es solo una fábrica: es donde pasan las cosas físicas de cualquier empresa." }
+      ] },
+      { type: "classify", titol: "¿Dónde pesa más cada tecnología?", prompt: "Pon cada tecnología donde pesa más: en el negocio, en la planta o en ambos.",
+        bins: [{ id: "it", label: "Negocio (IT)" }, { id: "ot", label: "Planta (OT)" }, { id: "both", label: "Ambos" }],
+        items: [
+          { id: "cloud", text: "Cloud", bin: "it", why: "La nube pesa mucho en el negocio; a la planta llega de forma indirecta (edge)." },
+          { id: "bigdata", text: "Big data", bin: "it", why: "El big data pesa sobre todo en el negocio: clientes, demanda, precios." },
+          { id: "chain", text: "Blockchain", bin: "it", why: "El blockchain casi no toca la planta: es confianza entre empresas." },
+          { id: "robot", text: "Robótica y cobots", bin: "ot", why: "La robótica pesa en la planta; en el negocio casi no está." },
+          { id: "iot", text: "IoT", bin: "ot", why: "El IoT vigila máquinas y cosas físicas: planta." },
+          { id: "g5", text: "5G", bin: "ot", why: "El 5G conecta sensores, robots y vehículos: planta." },
+          { id: "ia", text: "IA", bin: "both", why: "La IA pesa mucho en el negocio y también en la planta (visión artificial, mantenimiento)." },
+          { id: "ciber", text: "Ciberseguridad", bin: "both", why: "La ciberseguridad pesa mucho en los dos lados." },
+          { id: "twin", text: "Gemelo digital", bin: "both", why: "El gemelo digital une IT y OT." }
+        ] }
+    ]
+  },
+  "2.6": {
+    npc: "laia", nom: "Antes y después", lloc: "Almacén Rutes Delta (Laia)",
+    idea: "Explica cada mejora en dos columnas, ANTES y DESPUÉS, y di qué tecnología la ha hecho posible y en qué entorno (IT u OT) pasa.",
+    parts: [
+      { type: "mcq", titol: "¿Qué viene después?", questions: [
+        { q: "ANTES: un trabajador hace rondas a pie para revisar las cámaras de frío. DESPUÉS…", opts: ["Sensores que vigilan la temperatura continuamente (IoT)", "Un informe a final de mes (big data)", "Un registro compartido entre empresas (blockchain)"], a: 0, why: "Rondas manuales → monitorización continua con sensores IoT (entorno OT)." },
+        { q: "ANTES: el camión se repara cuando se estropea. DESPUÉS…", opts: ["Mantenimiento predictivo: reparar antes (IoT + IA)", "Imprimir un camión nuevo en 3D", "Visita virtual del camión (RV)"], a: 0, why: "Correctivo → predictivo gracias a los datos de los sensores y la IA (OT)." },
+        { q: "ANTES: en la oficina se teclean las facturas a mano. DESPUÉS…", opts: ["La IA las lee y un robot de software (RPA) las introduce en el programa", "Un cobot teclea las facturas", "Se guardan en un blockchain"], a: 0, why: "IA + RPA automatizan el trabajo administrativo (IT). Los cobots son para la planta." },
+        { q: "ANTES: los informes de ventas llegan a final de mes. DESPUÉS…", opts: ["Indicadores en tiempo real (big data)", "Robots que reparten informes", "Gafas de realidad aumentada"], a: 0, why: "Informe mensual → indicadores en tiempo real (IT)." },
+        { q: "ANTES: para probar una nueva distribución del almacén hay que mover las estanterías. DESPUÉS…", opts: ["Simularla primero con un gemelo digital", "Comprar más estanterías", "Hacerlo con blockchain"], a: 0, why: "El gemelo digital permite probar decisiones antes de tomarlas." },
+        { q: "ANTES: la seguridad es solo el cortafuegos de la oficina. DESPUÉS…", opts: ["Seguridad basada en la identidad: doble factor (ciberseguridad)", "Quitar la contraseña para ir más rápido", "Poner los servidores en el muelle"], a: 0, why: "La seguridad pasa a basarse en quién eres (identidad y doble factor)." }
+      ] },
+      { type: "classify", titol: "¿IT u OT?", prompt: "¿Dónde pasa cada mejora: en el entorno IT (oficina) o en el entorno OT (planta)?",
+        bins: [{ id: "it", label: "Entorno IT" }, { id: "ot", label: "Entorno OT" }],
+        items: [
+          { id: "a", text: "Indicadores de ventas en tiempo real", bin: "it", why: "Información de negocio: IT." },
+          { id: "b", text: "Facturas leídas por IA e introducidas por RPA", bin: "it", why: "Tarea administrativa: IT." },
+          { id: "c", text: "Doble factor para entrar en el correo", bin: "it", why: "Seguridad de los sistemas de oficina: IT." },
+          { id: "d", text: "Servicios en la nube que crecen cuando hace falta", bin: "it", why: "Infraestructura de la oficina: IT." },
+          { id: "e", text: "Sensores en las cámaras de frío", bin: "ot", why: "Vigilar cosas físicas: OT." },
+          { id: "f", text: "Mantenimiento predictivo de los camiones", bin: "ot", why: "Máquinas y vehículos: OT." },
+          { id: "g", text: "Cámaras que detectan cajas rotas", bin: "ot", why: "Control de calidad físico con visión artificial: OT." },
+          { id: "h", text: "Cobots para levantar cajas pesadas", bin: "ot", why: "Tarea física de planta: OT." }
+        ] }
+    ]
+  },
+  "2.7": {
+    npc: "clara", nom: "El informe desordenado", lloc: "Biblioteca (Clara)",
+    idea: "Un informe de THD relaciona cada tecnología con sus características y con el área donde se aplica. Tiene diez bloques, y cada tecnología debe responder: ¿qué problema de esta empresa resuelve?",
+    parts: [
+      { type: "order", titol: "Ordena los diez bloques del informe", prompt: "Toca los bloques en el orden correcto. Toca un bloque ya colocado para quitarlo.",
+        items: ["Portada", "Objetivo", "Contexto de la empresa", "Ficha de cada tecnología", "Tabla de síntesis", "Prioridades justificadas", "Impacto en IT y OT", "Sostenibilidad", "Conclusiones", "Fuentes"] },
+      { type: "mcq", titol: "Las reglas del informe", questions: [
+        { q: "¿Qué pregunta debe responder cada tecnología del informe?", opts: ["¿Qué problema de esta empresa resuelve?", "¿Es la más moderna del mercado?", "¿Cuánto cuesta la marca más cara?"], a: 0, why: "Si no sabes decir qué problema resuelve, esa tecnología no debe estar." },
+        { q: "¿Qué debe tener cada fila de la tabla de síntesis?", opts: ["Tecnología · área · qué aporta · prioridad · indicador", "Nombre del proveedor y precio", "Logotipo y eslogan"], a: 0, why: "La tabla de síntesis resume cada tecnología con su área, aportación, prioridad e indicador." },
+        { q: "¿Qué va en el apartado de fuentes?", opts: ["De dónde has sacado la información, con fecha, y para qué has usado la IA", "Solo el nombre del profesor", "Nada: es opcional"], a: 0, why: "Las fuentes permiten comprobar el informe; si has usado IA, se explica para qué." }
+      ] }
+    ]
+  }
+};
+const QUEST_ORDER = ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7"];
+
+/* Debate final contra Fum */
+const BOSS = [
+  { claim: "¡Poned blockchain en la panadería! ¡Todo tiene que ir en blockchain!", opts: ["Si solo una empresa controla el dato, una base de datos normal es mejor y más barata.", "Tiene razón: el blockchain siempre es mejor.", "El blockchain solo sirve para los videojuegos."], a: 0, why: "El blockchain tiene sentido cuando varias empresas comparten datos y ninguna manda sobre las demás." },
+  { claim: "¡Mi IA lo hace todo sola! ¡No hace falta que nadie la revise!", opts: ["La IA puede tener sesgos y errores: hacen falta datos de calidad y supervisión humana.", "Exacto, la IA nunca se equivoca.", "La IA solo funciona con 5G."], a: 0, why: "La IA aprende de los datos: si son malos o sesgados, se equivoca. Hace falta supervisión humana." },
+  { claim: "¡Digitalizar salva el planeta! ¡Siempre y sin excepciones!", opts: ["Hay que hacer el balance: lo que ahorra menos lo que cuesta (energía, residuos, efecto rebote).", "Sí, cuantas más pantallas, más verde.", "Digitalizar siempre contamina más."], a: 0, why: "La sostenibilidad no es automática: se mide con el balance neto." },
+  { claim: "La ciberseguridad es un freno. ¡Quítala e irás más rápido!", opts: ["Es una habilitadora: sin confianza, nadie conecta la planta ni sube datos a la nube.", "Tiene razón, es opcional.", "Solo hace falta en las grandes empresas."], a: 0, why: "La ciberseguridad hace posible el resto de THD." },
+  { claim: "¿Big data? Yo tengo tres Excels enormes. ¡Big, big data!", opts: ["Big data es volumen, velocidad y variedad de datos que no caben en herramientas normales.", "Sí, big data quiere decir muchos Excels.", "Big data es un tipo de robot."], a: 0, why: "Las 5 V: volumen, velocidad, variedad, veracidad y valor." },
+  { claim: "¡Mis robots industriales os harán la contabilidad!", opts: ["La robótica pesa en la planta; en la oficina, las tareas las automatiza el RPA.", "Claro, los robots hacen facturas.", "Los robots solo sirven para el cine."], a: 0, why: "La robótica es sobre todo OT; el RPA es el «robot» de software de la oficina." },
+  { claim: "Mi informe tiene 30 tecnologías. ¡Cuantas más pongas, mejor!", opts: ["Cada tecnología debe responder qué problema de esta empresa resuelve.", "Cuantas más, mejor.", "Un informe no necesita tecnologías."], a: 0, why: "Un informe de THD prioriza y justifica; no es un catálogo de tienda." },
+  { claim: "¡Un gemelo digital funciona igual de bien con datos malos!", opts: ["Con datos malos solo simula errores: necesita muchos datos y buenos.", "Sí, los datos no importan.", "El gemelo digital no usa datos."], a: 0, why: "Sin datos de calidad, la simulación no sirve." }
+];
+
+return { RA2, CA, FITXES, FAMILIES, CARTELLS, QUESTS, QUEST_ORDER, BOSS };
+}
+const DATASETS = { ca: DATA_CA(), es: DATA_ES() };
+/* ============ IDIOMES · català (original) i castellà ============ */
+let LANG = "ca";
+let RA2, CA, FITXES, FAMILIES, CARTELLS, QUESTS, QUEST_ORDER, BOSS;
+function setData(l) { ({ RA2, CA, FITXES, FAMILIES, CARTELLS, QUESTS, QUEST_ORDER, BOSS } = DATASETS[l === "es" ? "es" : "ca"]); }
+setData("ca");
+const TR_MISS = new Set();
+function tr(s, v) {
+  let o = s;
+  if (LANG === "es") { if (ES[s] != null) o = ES[s]; else TR_MISS.add(s); }
+  if (v) for (const k in v) o = o.split("{" + k + "}").join(String(v[k]));
+  return o;
+}
+const ES = {
+  "Segell": "Sello",
+  "Objectiu:": "Objetivo:",
+  "Has guanyat el debat! Obre «Missions» per descarregar l'informe en PDF.": "¡Has ganado el debate! Abre «Misiones» para descargar el informe en PDF.",
+  "Tens els set segells. Parla amb l'Alcaldessa davant de l'Ajuntament per començar el debat.": "Tienes los siete sellos. Habla con la alcaldesa delante del Ayuntamiento para empezar el debate.",
+  "Troba les fitxes brillants de les THD ({n}/11) i parla amb els veïns que tenen un «!».": "Encuentra las fichas brillantes de las THD ({n}/11) y habla con los vecinos que tienen un «!».",
+  "Ja tens les 11 fitxes! Torna a la plaça i parla amb l'Ada.": "¡Ya tienes las 11 fichas! Vuelve a la plaza y habla con Ada.",
+  "Aconsegueix el segell {k}: {lloc}. Et falten {n} segells.": "Consigue el sello {k}: {lloc}. Te faltan {n} sellos.",
+  "consultor/a": "consultor/a",
+  "Tancat.": "Cerrado.",
+  "Cartell": "Cartel",
+  "Has trobat una fitxa THD!": "¡Has encontrado una ficha THD!",
+  "Exemple:": "Ejemplo:",
+  "Què aporta:": "Qué aporta:",
+  "On pesa més:": "Dónde pesa más:",
+  "Compte amb:": "Cuidado con:",
+  "Fitxa": "Ficha",
+  "{nom}, m'han dit que ja tens les onze fitxes! Vine a la plaça: et faré la prova de les famílies.": "{nom}, ¡me han dicho que ya tienes las once fichas! Ven a la plaza: te haré la prueba de las familias.",
+  "(Encerts a la primera: {p}%)": "(Aciertos a la primera: {p}%)",
+  "Idea clau:": "Idea clave:",
+  "Vull practicar la prova (no puntua)": "Quiero practicar la prueba (no puntúa)",
+  "Gràcies!": "¡Gracias!",
+  "Som-hi!": "¡Vamos!",
+  "Explica-m'ho primer": "Explícamelo primero",
+  "Preparat/da?": "¿Preparado/a?",
+  "Més tard": "Más tarde",
+  "Ja tens el segell de les onze fitxes. Ets un/a crac.": "Ya tienes el sello de las once fichas. Eres un/a crac.",
+  "Portes {n} de 11 fitxes. Busca les espurnes daurades. Pistes: {p}.": "Llevas {n} de 11 fichas. Busca los destellos dorados. Pistas: {p}.",
+  "Recorda: les THD són transversals, combinables i transformadores. Mira també el cartell de la plaça.": "Recuerda: las THD son transversales, combinables y transformadoras. Mira también el cartel de la plaza.",
+  "Has trobat les onze! Ara demostra-ho.": "¡Has encontrado las once! Ahora demuéstralo.",
+  "Primer classificaràs les tecnologies en cinc famílies; després, quatre preguntes sobre les seves característiques.": "Primero clasificarás las tecnologías en cinco familias; después, cuatro preguntas sobre sus características.",
+  "Comencem la prova?": "¿Empezamos la prueba?",
+  "Gràcies a tu, Vilabit es digitalitzarà amb cap i no amb fum. Pots descarregar el teu informe des de «Missions».": "Gracias a ti, Vilabit se digitalizará con cabeza y no con humo. Puedes descargar tu informe desde «Misiones».",
+  "Benvingut/da, {nom}. Per parlar a l'assemblea necessito els set segells. Te'n falten {n}.": "Bienvenido/a, {nom}. Para hablar en la asamblea necesito los siete sellos. Te faltan {n}.",
+  "Els veïns amb un «!» groc t'esperen. Obre «Missions» (tecla Q) per veure on són.": "Los vecinos con un «!» amarillo te esperan. Abre «Misiones» (tecla Q) para ver dónde están.",
+  "Tens els set segells! L'assemblea comença ara mateix.": "¡Tienes los siete sellos! La asamblea empieza ahora mismo.",
+  "Ha, ha! Un/a aprenent contra el gran Fum? Les meves ofertes són irresistibles!": "¡Ja, ja! ¿Un/a aprendiz contra el gran Fum? ¡Mis ofertas son irresistibles!",
+  "Rebat cada afirmació d'en Fum. Si perds tota la credibilitat, podràs tornar-ho a provar.": "Rebate cada afirmación de Fum. Si pierdes toda la credibilidad, podrás volver a intentarlo.",
+  "Que comenci el debat!": "¡Que empiece el debate!",
+  "Encara no": "Todavía no",
+  "Està bé, està bé... Potser a la fleca n'hi ha prou amb una bona base de dades. Me'n vaig a un altre poble.": "Vale, vale... Quizá en la panadería basta con una buena base de datos. Me voy a otro pueblo.",
+  "Psst! Vols un blockchain per a la teva fleca? Preu d'amic!": "¡Psst! ¿Quieres un blockchain para tu panadería? ¡Precio de amigo!",
+  "La meva IA ho fa tot sola. Ni l'has d'endollar!": "Mi IA lo hace todo sola. ¡Ni siquiera hay que enchufarla!",
+  "Big data? Tinc tres Excels enormes. Big, big data!": "¿Big data? Tengo tres Excels enormes. ¡Big, big data!",
+  "Digitalitzar salva el planeta. Sempre. Ho diu el meu fullet!": "Digitalizar salva el planeta. Siempre. ¡Lo dice mi folleto!",
+  "Robots industrials per fer la comptabilitat! Oferta limitada!": "¡Robots industriales para hacer la contabilidad! ¡Oferta limitada!",
+  "Tu": "Tú",
+  "Hmm... això em sona a fum. Quan tingui els set segells, en parlarem a l'assemblea.": "Mmm... esto me suena a humo. Cuando tenga los siete sellos, lo hablaremos en la asamblea.",
+  "Les espurnes daurades són fitxes de tecnologies! N'hi ha prop del port, del magatzem, de l'hotel i de la biblioteca.": "¡Los destellos dorados son fichas de tecnologías! Hay cerca del puerto, del almacén, del hotel y de la biblioteca.",
+  "I els cartells de fusta expliquen la teoria. La meva mare diu que s'han de llegir abans de cada prova.": "Y los carteles de madera explican la teoría. Mi madre dice que hay que leerlos antes de cada prueba.",
+  "A la gestoria hem posat IA per llegir les factures i un robot de programari, l'RPA, que les entra al programa.": "En la gestoría hemos puesto IA para leer las facturas y un robot de software, el RPA, que las introduce en el programa.",
+  "Un cobot no, eh! Els cobots són robots físics per a la planta. L'RPA és programari d'oficina.": "¡Un cobot no, eh! Los cobots son robots físicos para la planta. El RPA es software de oficina.",
+  "A l'agència unim les dades del web, de la botiga i del CRM. La IA prediu quins clients marxaran.": "En la agencia unimos los datos de la web, de la tienda y del CRM. La IA predice qué clientes se irán.",
+  "Però si les dades són dolentes, la IA treu conclusions falses amb cara de científiques. Dades bones primer!": "Pero si los datos son malos, la IA saca conclusiones falsas con cara de científicas. ¡Primero, datos buenos!",
+  "Miau. (El gat et mira com si sabés que la ciberseguretat és una habilitadora.)": "Miau. (El gato te mira como si supiera que la ciberseguridad es una habilitadora.)",
+  "Prrr... (S'estira sobre el sensor de temperatura. Ara marca 38 °C.)": "Prrr... (Se tumba sobre el sensor de temperatura. Ahora marca 38 °C.)",
+  "Miau! (Ha trepitjat el teclat i ha creat un mercat nou.)": "¡Miau! (Ha pisado el teclado y ha creado un mercado nuevo.)",
+  "Criteri": "Criterio",
+  "pràctica": "práctica",
+  "Part {a} de {b}": "Parte {a} de {b}",
+  "Comprova": "Comprueba",
+  "Surt": "Salir",
+  "Totes col·locades": "Todas colocadas",
+  "Perfecte!": "¡Perfecto!",
+  "Totes al seu lloc.": "Todas en su sitio.",
+  "Continua": "Continuar",
+  "{n} no és al seu lloc.": "{n} no está en su sitio.",
+  "{n} no són al seu lloc.": "{n} no están en su sitio.",
+  "Han tornat a la safata. Pistes:": "Han vuelto a la bandeja. Pistas:",
+  "Pregunta": "Pregunta",
+  "Correcte!": "¡Correcto!",
+  "No és aquesta.": "No es esta.",
+  "El teu informe": "Tu informe",
+  "Blocs desordenats": "Bloques desordenados",
+  "Toca els blocs de sota en ordre": "Toca los bloques de abajo en orden",
+  "Tots col·locats": "Todos colocados",
+  "Bloc {n} de l'informe": "Bloque {n} del informe",
+  "Ordre de l'informe:": "Orden del informe:",
+  "Informe en ordre!": "¡Informe en orden!",
+  "El bloc {n} no va aquí.": "El bloque {n} no va aquí.",
+  "Els blocs ben posats fins al primer error es queden; la resta han tornat a la safata. Pensa: què ha de trobar primer qui obre l'informe?": "Los bloques bien colocados hasta el primer error se quedan; el resto han vuelto a la bandeja. Piensa: ¿qué debe encontrar primero quien abre el informe?",
+  "Pràctica · no puntua": "Práctica · no puntúa",
+  "Prova repassada": "Prueba repasada",
+  "Encerts a la primera:": "Aciertos a la primera:",
+  "La puntuació oficial és la de la primera vegada.": "La puntuación oficial es la de la primera vez.",
+  "Torna a Vilabit": "Volver a Vilabit",
+  "Segell aconseguit": "Sello conseguido",
+  "encerts a la primera": "aciertos a la primera",
+  "Ja tens els set segells!": "¡Ya tienes los siete sellos!",
+  "Ves a l'Ajuntament i parla amb l'Alcaldessa.": "Ve al Ayuntamiento y habla con la alcaldesa.",
+  "Et falten {n} segells.": "Te faltan {n} sellos.",
+  "Assemblea de Vilabit · debat final": "Asamblea de Vilabit · debate final",
+  "intent": "intento",
+  "Debat contra en Fum": "Debate contra Fum",
+  "Afirmació": "Afirmación",
+  "Credibilitat": "Credibilidad",
+  "Com li respons?": "¿Cómo le respondes?",
+  "Abandona el debat": "Abandonar el debate",
+  "Rebatut! En Fum s'encongeix.": "¡Rebatido! Fum se encoge.",
+  "En Fum somriu... Has perdut credibilitat.": "Fum sonríe... Has perdido credibilidad.",
+  "L'assemblea dubta": "La asamblea duda",
+  "En Fum ha guanyat aquest debat": "Fum ha ganado este debate",
+  "Has perdut tota la credibilitat. Repassa els cartells i el Còdex i torna-ho a provar: les preguntes canvien d'ordre.": "Has perdido toda la credibilidad. Repasa los carteles y el Códex y vuelve a intentarlo: las preguntas cambian de orden.",
+  "La puntuació del debat és la del primer intent.": "La puntuación del debate es la del primer intento.",
+  "Torna-ho a provar": "Volver a intentarlo",
+  "Ara no": "Ahora no",
+  "Pendent": "Pendiente",
+  "Excel·lent": "Excelente",
+  "Assolit": "Conseguido",
+  "En procés": "En proceso",
+  "Cal repassar": "Hay que repasar",
+  "Mestre/a de la transformació digital": "Maestro/a de la transformación digital",
+  "Consultor/a digital": "Consultor/a digital",
+  "Tècnic/a en digitalització": "Técnico/a en digitalización",
+  "Aprenent digital": "Aprendiz digital",
+  "Prova": "Prueba",
+  "Encerts a la primera": "Aciertos a la primera",
+  "Nivell": "Nivel",
+  "Debat": "Debate",
+  "Integra tots els criteris": "Integra todos los criterios",
+  "Vilabit és a salvo del fum": "Vilabit está a salvo del humo",
+  "Has guanyat el debat!": "¡Has ganado el debate!",
+  "En Fum ha recollit els fullets i ha marxat del poble. L'Alcaldessa t'ha nomenat": "Fum ha recogido los folletos y se ha ido del pueblo. La alcaldesa te ha nombrado",
+  "puntuació sobre 100": "puntuación sobre 100",
+  "segells": "sellos",
+  "fitxes THD": "fichas THD",
+  "Descarrega l'informe en PDF i lliura'l al teu professor o professora.": "Descarga el informe en PDF y entrégalo a tu profesor o profesora.",
+  "Descarrega l'informe PDF": "Descargar el informe PDF",
+  "Continua explorant": "Seguir explorando",
+  "No s'ha pogut carregar el generador de PDF. Comprova la connexió a Internet i torna-ho a provar.": "No se ha podido cargar el generador de PDF. Comprueba la conexión a Internet y vuelve a intentarlo.",
+  "alumne": "alumno",
+  "Informe desat.": "Informe guardado.",
+  "Has cancel·lat la descàrrega.": "Has cancelado la descarga.",
+  "No s'ha pogut desar l'informe en aquesta vista.": "No se ha podido guardar el informe en esta vista.",
+  "Informe descarregat:": "Informe descargado:",
+  "Els Segells de Vilabit · Joc formatiu del MP 1665 · Codi de verificació {c}": "Los Sellos de Vilabit · Juego formativo del MP 1665 · Código de verificación {c}",
+  "Pàgina {i} de {n}": "Página {i} de {n}",
+  "ELS SEGELLS DE VILABIT": "LOS SELLOS DE VILABIT",
+  "Informe de partida · MP 1665 Digitalització aplicada als sectors productius": "Informe de partida · MP 1665 Digitalización aplicada a los sectores productivos",
+  "RA2 · Tecnologies habilitadores digitals (THD)": "RA2 · Tecnologías habilitadoras digitales (THD)",
+  "Alumne/a": "Alumno/a",
+  "(sense nom)": "(sin nombre)",
+  "Grup": "Grupo",
+  "Data": "Fecha",
+  "Temps de joc": "Tiempo de juego",
+  "puntuació global / 100": "puntuación global / 100",
+  "Segells: {a}/7   ·   Fitxes THD: {b}/11   ·   Cartells llegits: {c}/{d}   ·   XP: {e}": "Sellos: {a}/7   ·   Fichas THD: {b}/11   ·   Carteles leídos: {c}/{d}   ·   XP: {e}",
+  "Debat final:": "Debate final:",
+  "al primer intent": "al primer intento",
+  "intents": "intentos",
+  "no fet": "no hecho",
+  "Resultat d'aprenentatge": "Resultado de aprendizaje",
+  "Resultats per criteri d'avaluació": "Resultados por criterio de evaluación",
+  "Prova del joc": "Prueba del juego",
+  "Encerts": "Aciertos",
+  "Debat final (integra el RA2)": "Debate final (integra el RA2)",
+  "Encerts = respostes correctes al primer intent de cada prova. La puntuació global és la mitjana dels set criteris i del debat. Nivells: Excel·lent 90-100 · Assolit 70-89 · En procés 50-69 · Cal repassar 0-49.": "Aciertos = respuestas correctas al primer intento de cada prueba. La puntuación global es la media de los siete criterios y del debate. Niveles: Excelente 90-100 · Conseguido 70-89 · En proceso 50-69 · Hay que repasar 0-49.",
+  "Per repassar": "Para repasar",
+  "Cap error al primer intent. Excel·lent feina!": "Ningún error al primer intento. ¡Excelente trabajo!",
+  "Has respost:": "Has respondido:",
+  "Correcte:": "Correcto:",
+  "Fitxes THD consultades": "Fichas THD consultadas",
+  "Què és": "Qué es",
+  "Aporta": "Aporta",
+  "Pesa": "Pesa",
+  "Compte": "Cuidado",
+  "Fitxa no trobada. Pista:": "Ficha no encontrada. Pista:",
+  "Les teves notes": "Tus notas",
+  "Còdex de les THD": "Códex de las THD",
+  "Tanca": "Cerrar",
+  "{n} de 11 fitxes trobades.": "{n} de 11 fichas encontradas.",
+  "Idees clau dels segells": "Ideas clave de los sellos",
+  "Encara no tens cap segell.": "Todavía no tienes ningún sello.",
+  "Busca fitxes ({n}/11)": "Busca fichas ({n}/11)",
+  "Missions": "Misiones",
+  "Missió": "Misión",
+  "Estat": "Estado",
+  "Ajuntament (Alcaldessa)": "Ayuntamiento (alcaldesa)",
+  "Guanyat": "Ganado",
+  "Disponible": "Disponible",
+  "Calen els 7 segells": "Hacen falta los 7 sellos",
+  "Disponible en guanyar el debat final": "Disponible al ganar el debate final",
+  "Nova partida": "Partida nueva",
+  "Segur? Es perdrà la partida d'aquest navegador.": "¿Seguro? Se perderá la partida de este navegador.",
+  "Sí, comença de nou": "Sí, empezar de nuevo",
+  "MP 1665 · RA2 · Tecnologies habilitadores digitals": "MP 1665 · RA2 · Tecnologías habilitadoras digitales",
+  "ELS SEGELLS<br>DE VILABIT": "LOS SELLOS<br>DE VILABIT",
+  "En Fum, un venedor de «tecnologia miraculosa», vol enredar tot el poble. Ajuda els veïns, troba les 11 fitxes de les THD, guanya els <b>set segells</b> i desmunta els seus trucs a l'assemblea.": "Fum, un vendedor de «tecnología milagrosa», quiere engañar a todo el pueblo. Ayuda a los vecinos, encuentra las 11 fichas de las THD, gana los <b>siete sellos</b> y desmonta sus trucos en la asamblea.",
+  "o": "o",
+  "per moure't": "para moverte",
+  "Espai": "Espacio",
+  "per parlar i mirar": "para hablar y mirar",
+  "Còdex": "Códex",
+  "Hi ha una partida desada de": "Hay una partida guardada de",
+  "sense nom": "sin nombre",
+  "Continua la partida": "Continuar la partida",
+  "Partida nova": "Partida nueva",
+  "Nom i cognom (sortirà a l'informe PDF)": "Nombre y apellido (saldrá en el informe PDF)",
+  "Tria el grup": "Elige el grupo",
+  "Altres": "Otros",
+  "Comença l'aventura": "Empezar la aventura",
+  "Escriu el teu nom: sortirà a l'informe que lliuraràs.": "Escribe tu nombre: saldrá en el informe que entregarás.",
+  "{nom}, benvingut/da a Vilabit! Sóc l'Ada, consultora de transformació digital.": "{nom}, ¡bienvenido/a a Vilabit! Soy Ada, consultora de transformación digital.",
+  "Aquí tot es fa a mà... i ha arribat en Fum, un venedor que vol vendre «tecnologia miraculosa» a tothom.": "Aquí todo se hace a mano... y ha llegado Fum, un vendedor que quiere vender «tecnología milagrosa» a todo el mundo.",
+  "Blockchain per a la fleca! IA que ho fa tot sola! Compreu, compreu!": "¡Blockchain para la panadería! ¡IA que lo hace todo sola! ¡Compren, compren!",
+  "A l'assemblea de l'Ajuntament podràs desmuntar els seus trucs. Però l'Alcaldessa demana els set Segells del Consell Digital.": "En la asamblea del Ayuntamiento podrás desmontar sus trucos. Pero la alcaldesa pide los siete Sellos del Consejo Digital.",
+  "Cada segell el dona un veí quan l'ajudes amb una part de les tecnologies habilitadores digitals, les THD. Els veïns que t'esperen porten un «!» groc.": "Cada sello te lo da un vecino cuando le ayudas con una parte de las tecnologías habilitadoras digitales, las THD. Los vecinos que te esperan llevan un «!» amarillo.",
+  "Comença per les 11 fitxes brillants escampades pel poble, una per cada THD. Quan les tinguis totes, torna amb mi.": "Empieza por las 11 fichas brillantes repartidas por el pueblo, una por cada THD. Cuando las tengas todas, vuelve conmigo.",
+  "Fletxes o WASD per moure't, Espai per parlar i mirar objectes. C obre el Còdex amb el que has après i Q, les missions. Som-hi!": "Flechas o WASD para moverte, Espacio para hablar y mirar objetos. C abre el Códex con lo que has aprendido y Q, las misiones. ¡Vamos!",
+  "Idioma: català": "Idioma: castellano",
+  "So: sí": "Sonido: sí",
+  "So: no": "Sonido: no",
+  "La porta està tancada fins a l'assemblea. Parla amb l'Alcaldessa.": "La puerta está cerrada hasta la asamblea. Habla con la alcaldesa.",
+  "Fa olor de llibres i de servidors... ah, no, que tot és al núvol.": "Huele a libros y a servidores... ah, no, que todo está en la nube.",
+  "Al vestíbul tothom fa el registre amb el mòbil. Bé, tothom no: la Marta encara té fulls.": "En el vestíbulo todo el mundo hace el registro con el móvil. Bueno, todo el mundo no: Marta todavía tiene hojas.",
+  "Taronges, tomàquets i milions de tiquets de compra.": "Naranjas, tomates y millones de tiques de compra.",
+  "Pantalles enceses i olor de cafè. Aquí la IA prediu què compraràs.": "Pantallas encendidas y olor a café. Aquí la IA predice qué comprarás.",
+  "Dins hi ha cambres frigorífiques a mig muntar.": "Dentro hay cámaras frigoríficas a medio montar.",
+  "Prestatgeries, caixes i un robot que fa nyic-nyic.": "Estanterías, cajas y un robot que hace ñic-ñic.",
+  "Documents, segells i un llibre-cadena que tothom pot consultar.": "Documentos, sellos y un libro-cadena que todo el mundo puede consultar.",
+  /* textos fixos de la pàgina */
+  "Els Segells de Vilabit": "Los Sellos de Vilabit",
+  "Fitxes": "Fichas",
+  "Fitxes THD trobades": "Fichas THD encontradas",
+  "Experiència": "Experiencia",
+  "Segells aconseguits": "Sellos conseguidos",
+  "Mapa de Vilabit": "Mapa de Vilabit",
+  "Amunt": "Arriba",
+  "Esquerra": "Izquierda",
+  "Dreta": "Derecha",
+  "Avall": "Abajo",
+  "Parla o mira": "Hablar o mirar"
+};
+
 </script>
 <script>
 "use strict";
@@ -536,14 +1057,14 @@ function fill(x1, y1, x2, y2, t) { for (let y = y1; y <= y2; y++) for (let x = x
 })();
 
 const BUILDINGS = [
-  { id: "ajuntament", x: 15, y: 2, w: 10, h: 5, name: "AJUNTAMENT", roof: "#b8433a", wall: "#efe3c8", door: 20 },
-  { id: "biblioteca", x: 3, y: 2, w: 7, h: 5, name: "BIBLIOTECA", roof: "#6a4fa0", wall: "#e8dcc4", door: 6 },
-  { id: "hotel", x: 29, y: 2, w: 8, h: 6, name: "HOTEL LLEVANT", roof: "#2f6f9f", wall: "#f4efe6", door: 32 },
-  { id: "mercat", x: 2, y: 12, w: 7, h: 3, name: "MERCAT", roof: "stripes", wall: "#c98b4a", door: 5 },
-  { id: "agencia", x: 31, y: 11, w: 7, h: 4, name: "AGÈNCIA PÍXEL", roof: "#f08a24", wall: "#3a3f5c", door: 34 },
-  { id: "taller", x: 2, y: 21, w: 7, h: 4, name: "FRED PERE", roof: "#6c757d", wall: "#d9d4cc", door: 5 },
-  { id: "magatzem", x: 13, y: 21, w: 9, h: 5, name: "RUTES DELTA", roof: "#8a6d3b", wall: "#cfc3a8", door: 17 },
-  { id: "duanes", x: 27, y: 17, w: 4, h: 3, name: "DUANES", roof: "#4c6971", wall: "#e6eef0", door: 28 }
+  { id: "ajuntament", x: 15, y: 2, w: 10, h: 5, name: "AJUNTAMENT", nameEs: "AYUNTAMIENTO", roof: "#b8433a", wall: "#efe3c8", door: 20 },
+  { id: "biblioteca", x: 3, y: 2, w: 7, h: 5, name: "BIBLIOTECA", nameEs: "BIBLIOTECA", roof: "#6a4fa0", wall: "#e8dcc4", door: 6 },
+  { id: "hotel", x: 29, y: 2, w: 8, h: 6, name: "HOTEL LLEVANT", nameEs: "HOTEL LLEVANT", roof: "#2f6f9f", wall: "#f4efe6", door: 32 },
+  { id: "mercat", x: 2, y: 12, w: 7, h: 3, name: "MERCAT", nameEs: "MERCADO", roof: "stripes", wall: "#c98b4a", door: 5 },
+  { id: "agencia", x: 31, y: 11, w: 7, h: 4, name: "AGÈNCIA PÍXEL", nameEs: "AGENCIA PÍXEL", roof: "#f08a24", wall: "#3a3f5c", door: 34 },
+  { id: "taller", x: 2, y: 21, w: 7, h: 4, name: "FRED PERE", nameEs: "FRED PERE", roof: "#6c757d", wall: "#d9d4cc", door: 5 },
+  { id: "magatzem", x: 13, y: 21, w: 9, h: 5, name: "RUTES DELTA", nameEs: "RUTES DELTA", roof: "#8a6d3b", wall: "#cfc3a8", door: 17 },
+  { id: "duanes", x: 27, y: 17, w: 4, h: 3, name: "DUANES", nameEs: "ADUANAS", roof: "#4c6971", wall: "#e6eef0", door: 28 }
 ];
 const FOUNTAIN = { x: 19, y: 13, w: 2, h: 2 };
 const solidB = Array.from({ length: H }, () => Array(W).fill(false));
@@ -553,20 +1074,22 @@ for (let y = FOUNTAIN.y; y < FOUNTAIN.y + 2; y++) for (let x = FOUNTAIN.x; x < F
 /* ================= NPCS ================= */
 const NPCS = [
   { id: "ada", name: "Ada", role: "consultora", x: 17, y: 12, dir: "down", pal: { H: "#3b2a6b", S: "#f2c9a0", C: "#e1211d", P: "#2b2f55", B: "#1b1f3a" }, acc: "glasses" },
-  { id: "pere", name: "En Pere", role: "taller Fred Pere", x: 7, y: 25, dir: "down", pal: { H: "#8a8a8a", S: "#e8b98e", C: "#2f8fb5", P: "#3c3c3c", B: "#222" }, acc: "cap", capc: "#2f6f9f" },
-  { id: "rosa", name: "La Rosa", role: "parada del mercat", x: 7, y: 15, dir: "down", pal: { H: "#b5482e", S: "#f5cfa8", C: "#4caf50", P: "#5d4037", B: "#3e2723" }, acc: "bun" },
-  { id: "marta", name: "La Marta", role: "directora de l'Hotel Llevant", x: 34, y: 8, dir: "down", pal: { H: "#1d1d1d", S: "#c98e62", C: "#2f6f9f", P: "#1b1f3a", B: "#111" } },
-  { id: "jordi", name: "En Jordi", role: "exportador del port", x: 30, y: 20, dir: "down", pal: { H: "#6d4c41", S: "#f0c39b", C: "#ff9800", P: "#37474f", B: "#263238" }, acc: "cap", capc: "#37474f" },
-  { id: "laia", name: "La Laia", role: "operadora logística de Rutes Delta", x: 18, y: 27, dir: "up", pal: { H: "#e0a030", S: "#e6b48a", C: "#7cb342", P: "#33691e", B: "#1b1f3a" } },
-  { id: "clara", name: "La Clara", role: "bibliotecària", x: 8, y: 7, dir: "down", pal: { H: "#7b1fa2", S: "#f4d0b0", C: "#455a64", P: "#263238", B: "#111" }, acc: "glasses" },
-  { id: "alcaldessa", name: "L'Alcaldessa Núria", role: "Ajuntament", x: 22, y: 7, dir: "down", pal: { H: "#4e342e", S: "#d9a77c", C: "#b8433a", P: "#1b1f3a", B: "#111" }, acc: "bun" },
-  { id: "fum", name: "En Fum", role: "venedor de tecnologia miraculosa", x: 23, y: 11, dir: "left", pal: { H: "#222", S: "#e8c4a0", C: "#7b3fa0", P: "#3a1d52", B: "#111" }, acc: "tophat" },
-  { id: "pau", name: "En Pau", role: "veí curiós", x: 13, y: 19, dir: "down", pal: { H: "#f0c040", S: "#f5cfa8", C: "#03a9f4", P: "#1565c0", B: "#222" } },
-  { id: "toni", name: "En Toni", role: "gestoria del poble", x: 9, y: 10, dir: "down", pal: { H: "#5d4037", S: "#e0ac85", C: "#efe3c8", P: "#3e2723", B: "#111" }, acc: "glasses" },
-  { id: "biel", name: "En Biel", role: "Agència Píxel (màrqueting)", x: 36, y: 15, dir: "down", pal: { H: "#00bfa5", S: "#d39d74", C: "#212121", P: "#424242", B: "#111" } },
+  { id: "pere", name: "En Pere", nameEs: "Pere", role: "taller Fred Pere", x: 7, y: 25, dir: "down", pal: { H: "#8a8a8a", S: "#e8b98e", C: "#2f8fb5", P: "#3c3c3c", B: "#222" }, acc: "cap", capc: "#2f6f9f" },
+  { id: "rosa", name: "La Rosa", nameEs: "Rosa", role: "parada del mercat", x: 7, y: 15, dir: "down", pal: { H: "#b5482e", S: "#f5cfa8", C: "#4caf50", P: "#5d4037", B: "#3e2723" }, acc: "bun" },
+  { id: "marta", name: "La Marta", nameEs: "Marta", role: "directora de l'Hotel Llevant", x: 34, y: 8, dir: "down", pal: { H: "#1d1d1d", S: "#c98e62", C: "#2f6f9f", P: "#1b1f3a", B: "#111" } },
+  { id: "jordi", name: "En Jordi", nameEs: "Jordi", role: "exportador del port", x: 30, y: 20, dir: "down", pal: { H: "#6d4c41", S: "#f0c39b", C: "#ff9800", P: "#37474f", B: "#263238" }, acc: "cap", capc: "#37474f" },
+  { id: "laia", name: "La Laia", nameEs: "Laia", role: "operadora logística de Rutes Delta", x: 18, y: 27, dir: "up", pal: { H: "#e0a030", S: "#e6b48a", C: "#7cb342", P: "#33691e", B: "#1b1f3a" } },
+  { id: "clara", name: "La Clara", nameEs: "Clara", role: "bibliotecària", x: 8, y: 7, dir: "down", pal: { H: "#7b1fa2", S: "#f4d0b0", C: "#455a64", P: "#263238", B: "#111" }, acc: "glasses" },
+  { id: "alcaldessa", name: "L'Alcaldessa Núria", nameEs: "La alcaldesa Núria", role: "Ajuntament", x: 22, y: 7, dir: "down", pal: { H: "#4e342e", S: "#d9a77c", C: "#b8433a", P: "#1b1f3a", B: "#111" }, acc: "bun" },
+  { id: "fum", name: "En Fum", nameEs: "Fum", role: "venedor de tecnologia miraculosa", x: 23, y: 11, dir: "left", pal: { H: "#222", S: "#e8c4a0", C: "#7b3fa0", P: "#3a1d52", B: "#111" }, acc: "tophat" },
+  { id: "pau", name: "En Pau", nameEs: "Pau", role: "veí curiós", x: 13, y: 19, dir: "down", pal: { H: "#f0c040", S: "#f5cfa8", C: "#03a9f4", P: "#1565c0", B: "#222" } },
+  { id: "toni", name: "En Toni", nameEs: "Toni", role: "gestoria del poble", x: 9, y: 10, dir: "down", pal: { H: "#5d4037", S: "#e0ac85", C: "#efe3c8", P: "#3e2723", B: "#111" }, acc: "glasses" },
+  { id: "biel", name: "En Biel", nameEs: "Biel", role: "Agència Píxel (màrqueting)", x: 36, y: 15, dir: "down", pal: { H: "#00bfa5", S: "#d39d74", C: "#212121", P: "#424242", B: "#111" } },
   { id: "bit", name: "Bit", role: "el gat de la plaça", x: 22, y: 15, dir: "down", cat: true, wander: { x1: 15, y1: 10, x2: 24, y2: 16 } }
 ];
 const npcById = Object.fromEntries(NPCS.map(n => [n.id, n]));
+function npcName(n) { return LANG === "es" && n.nameEs ? n.nameEs : n.name; }
+function bName(b) { return LANG === "es" && b.nameEs ? b.nameEs : b.name; }
 NPCS.forEach(n => { n.rx = n.x; n.ry = n.y; n.fx = n.x; n.fy = n.y; n.t = 0; });
 
 /* ================= SPRITES ================= */
@@ -690,10 +1213,10 @@ function drawBuilding(g, b) {
   if (b.id === "magatzem") for (let i = 0; i < 6; i++) p(dX, dY + i * 4, 20, 1, "#757575"); else p(dX + 15, dY + 13, 3, 3, "#ffcc4d");
   // rètol
   g.font = "bold 11px 'Pixelify Sans', 'Courier New', monospace";
-  const tw = Math.ceil(g.measureText(b.name).width) + 12;
+  const tw = Math.ceil(g.measureText(bName(b)).width) + 12;
   const sx = Math.round(X + Wp / 2 - tw / 2), sy = Y + roofH - 18;
   p(sx, sy, tw, 16, "#fff6e3"); p(sx, sy + 14, tw, 2, "#1b1f3a"); g.strokeStyle = "#1b1f3a"; g.lineWidth = 2; g.strokeRect(sx, sy, tw, 16);
-  g.fillStyle = "#1b1f3a"; g.textBaseline = "middle"; g.fillText(b.name, sx + 6, sy + 8);
+  g.fillStyle = "#1b1f3a"; g.textBaseline = "middle"; g.fillText(bName(b), sx + 6, sy + 8);
   // detalls
   if (b.id === "ajuntament") { p(X + Wp / 2 - 2, Y - 26, 3, 28, "#5d4037"); p(X + Wp / 2 + 1, Y - 26, 18, 11, "#ffcc4d"); p(X + Wp / 2 + 1, Y - 22, 18, 3, "#e1211d"); }
   if (b.id === "agencia") { p(X + 8, Y + 6, 30, 10, "#ff4fa3"); p(X + Wp - 40, Y + 6, 30, 10, "#4fe3ff"); }
@@ -723,6 +1246,7 @@ function drawObject(g, kind, X, Y, t) {
 const OBJECTS = [];
 FITXES.forEach(f => OBJECTS.push({ type: "fitxa", id: f.id, kind: f.kind, x: f.x, y: f.y, ref: f }));
 CARTELLS.forEach((c, i) => OBJECTS.push({ type: "cartell", id: "c" + i, kind: "sign", x: c.x, y: c.y, ref: c }));
+function refreshRefs() { OBJECTS.forEach(o => { o.ref = o.type === "fitxa" ? FITXES.find(f => f.id === o.id) : CARTELLS[+o.id.slice(1)]; }); }
 
 /* ================= COLLISION ================= */
 function walkable(x, y) {
@@ -779,11 +1303,12 @@ function update(dt) {
 function onStep() {
   // en Fum crida quan t'hi acostes
   const f = npcById.fum; const d = Math.abs(f.fx - pl.x) + Math.abs(f.fy - pl.y);
-  if (d <= 3 && !fumBubble.until) { fumBubble.text = FUM_PITCH[Math.floor(Math.random() * FUM_PITCH.length)]; fumBubble.until = performance.now() + 3200; }
+  if (d <= 3 && !fumBubble.until) { const fp = FUM_PITCH[LANG]; fumBubble.text = fp[Math.floor(Math.random() * fp.length)]; fumBubble.until = performance.now() + 3200; }
   save();
 }
 const fumBubble = { text: "", until: 0 };
-const FUM_PITCH = ["Psst! Blockchain per a la fleca?", "IA que ho fa tot sola!", "Big, big data!", "Robots per a la comptabilitat!", "Salva el planeta amb pantalles!"];
+const FUM_PITCH = { ca: ["Psst! Blockchain per a la fleca?", "IA que ho fa tot sola!", "Big, big data!", "Robots per a la comptabilitat!", "Salva el planeta amb pantalles!"],
+  es: ["¡Psst! ¿Blockchain para la panadería?", "¡IA que lo hace todo sola!", "¡Big, big data!", "¡Robots para la contabilidad!", "¡Salva el planeta con pantallas!"] };
 
 function camera() {
   let cx = pl.rx * TS + TS / 2 - cv.width / 2, cy = pl.ry * TS + TS / 2 - cv.height / 2;
@@ -878,19 +1403,20 @@ function loop(now) {
 
 /* ================= HUD ================= */
 function hud() {
-  $("seals").innerHTML = QUEST_ORDER.map(k => `<div class="seal ${S.seals[k] ? "on" : ""}" title="Segell ${k}: ${esc(QUESTS[k].nom)}">${k}</div>`).join("");
+  $("seals").innerHTML = QUEST_ORDER.map(k => `<div class="seal ${S.seals[k] ? "on" : ""}" title="${tr("Segell")} ${k}: ${esc(QUESTS[k].nom)}">${k}</div>`).join("");
   $("sFitxes").textContent = S.fitxes.length + "/" + FITXES.length;
   $("sXp").textContent = S.xp;
-  $("goal").innerHTML = "<b>Objectiu:</b> " + esc(currentGoal());
+  $("goal").innerHTML = "<b>" + tr("Objectiu:") + "</b> " + esc(currentGoal());
+  applyStatic();
 }
 function currentGoal() {
   const n = Object.keys(S.seals).length;
-  if (S.boss?.won) return "Has guanyat el debat! Obre «Missions» per descarregar l'informe en PDF.";
-  if (n === 7) return "Tens els set segells. Parla amb l'Alcaldessa davant de l'Ajuntament per començar el debat.";
-  if (S.fitxes.length < FITXES.length) return `Troba les fitxes brillants de les THD (${S.fitxes.length}/11) i parla amb els veïns que tenen un «!».`;
-  if (!S.seals["2.1"]) return "Ja tens les 11 fitxes! Torna a la plaça i parla amb l'Ada.";
+  if (S.boss?.won) return tr("Has guanyat el debat! Obre «Missions» per descarregar l'informe en PDF.");
+  if (n === 7) return tr("Tens els set segells. Parla amb l'Alcaldessa davant de l'Ajuntament per començar el debat.");
+  if (S.fitxes.length < FITXES.length) return tr("Troba les fitxes brillants de les THD ({n}/11) i parla amb els veïns que tenen un «!».", { n: S.fitxes.length });
+  if (!S.seals["2.1"]) return tr("Ja tens les 11 fitxes! Torna a la plaça i parla amb l'Ada.");
   const next = QUEST_ORDER.find(k => !S.seals[k]);
-  return `Aconsegueix el segell ${next}: ${QUESTS[next].lloc}. Et falten ${7 - n} segells.`;
+  return tr("Aconsegueix el segell {k}: {lloc}. Et falten {n} segells.", { k: next, lloc: QUESTS[next].lloc, n: 7 - n });
 }
 let toastT = 0;
 function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 2400); }
@@ -910,11 +1436,11 @@ function say(pages, done) {
   mode = "dialog"; D = { pages, i: 0, done, shown: 0, full: false, chosen: 0 };
   $("dialog").hidden = false; showPage();
 }
-function nameFill(t) { return t.replace(/\{nom\}/g, S.name || "consultor/a"); }
+function nameFill(t) { return t.replace(/\{nom\}/g, S.name || tr("consultor/a")); }
 function showPage() {
   const pg = D.pages[D.i]; const npc = pg.who ? (pg.who === "player" ? PLAYER : npcById[pg.who]) : null;
   portrait($("por"), npc, pg.kind);
-  $("dWho").textContent = pg.name || (npc && npc.name) || "";
+  $("dWho").textContent = pg.name || (npc && npc !== PLAYER && npcName(npc)) || "";
   D.text = nameFill(pg.text); D.shown = 0; D.full = false; $("dSay").textContent = ""; $("dCh").innerHTML = ""; $("dMore").hidden = true;
   clearInterval(D.iv);
   D.iv = setInterval(() => {
@@ -952,40 +1478,40 @@ function interact() {
   const f = facing(); if (!f) return;
   if (f.type === "npc") { const n = f.n; if (!n.cat) n.dir = ({ up: "down", down: "up", left: "right", right: "left" })[pl.dir]; talk(n); }
   else if (f.type === "obj") readObject(f.o);
-  else if (f.type === "door") say([{ name: f.b.name, text: doorText(f.b) }]);
+  else if (f.type === "door") say([{ name: bName(f.b), text: doorText(f.b) }]);
 }
 function doorText(b) {
   const t = { ajuntament: "La porta està tancada fins a l'assemblea. Parla amb l'Alcaldessa.", biblioteca: "Fa olor de llibres i de servidors... ah, no, que tot és al núvol.", hotel: "Al vestíbul tothom fa el registre amb el mòbil. Bé, tothom no: la Marta encara té fulls.", mercat: "Taronges, tomàquets i milions de tiquets de compra.", agencia: "Pantalles enceses i olor de cafè. Aquí la IA prediu què compraràs.", taller: "Dins hi ha cambres frigorífiques a mig muntar.", magatzem: "Prestatgeries, caixes i un robot que fa nyic-nyic.", duanes: "Documents, segells i un llibre-cadena que tothom pot consultar." };
-  return t[b.id] || "Tancat.";
+  return tr(t[b.id] || "Tancat.");
 }
 function readObject(o) {
   if (o.type === "cartell") {
     const c = o.ref; if (!S.cartells.includes(o.id)) { S.cartells.push(o.id); addXp(5); }
-    say(c.text.map((tx, i) => ({ name: "Cartell · " + c.titol, text: tx, kind: "sign" })));
+    say(c.text.map((tx, i) => ({ name: tr("Cartell") + " · " + c.titol, text: tx, kind: "sign" })));
     return;
   }
   const f = o.ref; const nou = !S.fitxes.includes(f.id);
   const pages = [
-    { name: f.obj, kind: f.kind, text: (nou ? "Has trobat una fitxa THD! " : "") + f.nom + ": " + f.frase },
-    { name: f.obj, kind: f.kind, text: "Exemple: " + f.exemple + " Què aporta: " + f.aporta },
-    { name: f.obj, kind: f.kind, text: "On pesa més: " + f.pesa + " Compte amb: " + f.compte }
+    { name: f.obj, kind: f.kind, text: (nou ? tr("Has trobat una fitxa THD!") + " " : "") + f.nom + ": " + f.frase },
+    { name: f.obj, kind: f.kind, text: tr("Exemple:") + " " + f.exemple + " " + tr("Què aporta:") + " " + f.aporta },
+    { name: f.obj, kind: f.kind, text: tr("On pesa més:") + " " + f.pesa + " " + tr("Compte amb:") + " " + f.compte }
   ];
   say(pages, () => {
-    if (nou) { S.fitxes.push(f.id); addXp(20); SFX.pick(); toast(`Fitxa ${S.fitxes.length}/11: ${f.nom}`); save(); hud();
-      if (S.fitxes.length === FITXES.length) setTimeout(() => say([{ who: "ada", text: "{nom}, m'han dit que ja tens les onze fitxes! Vine a la plaça: et faré la prova de les famílies." }]), 400); }
+    if (nou) { S.fitxes.push(f.id); addXp(20); SFX.pick(); toast(`${tr("Fitxa")} ${S.fitxes.length}/11: ${f.nom}`); save(); hud();
+      if (S.fitxes.length === FITXES.length) setTimeout(() => say([{ who: "ada", text: tr("{nom}, m'han dit que ja tens les onze fitxes! Vine a la plaça: et faré la prova de les famílies.") }]), 400); }
   });
 }
 function questIntro(k, lines) {
   const q = QUESTS[k];
   if (S.seals[k]) {
     const st = S.stats[k];
-    return [{ who: q.npc, text: lines.done + ` (Encerts a la primera: ${st ? Math.round(100 * st.firstOk / st.total) : 0}%)` },
-      { who: q.npc, text: "Idea clau: " + q.idea, choices: [{ t: "Vull practicar la prova (no puntua)", f: () => openChallenge(k, true) }, { t: "Gràcies!", f: null }] }];
+    return [{ who: q.npc, text: lines.done + " " + tr("(Encerts a la primera: {p}%)", { p: st ? Math.round(100 * st.firstOk / st.total) : 0 }) },
+      { who: q.npc, text: tr("Idea clau:") + " " + q.idea, choices: [{ t: tr("Vull practicar la prova (no puntua)"), f: () => openChallenge(k, true) }, { t: tr("Gràcies!"), f: null }] }];
   }
   return [...lines.intro.map(t => ({ who: q.npc, text: t })),
-    { who: q.npc, text: lines.ask, choices: [{ t: "Som-hi!", f: () => openChallenge(k) }, { t: "Explica-m'ho primer", f: () => say([{ who: q.npc, text: q.idea }, { who: q.npc, text: "Preparat/da?", choices: [{ t: "Som-hi!", f: () => openChallenge(k) }, { t: "Més tard", f: null }] }]) }, { t: "Més tard", f: null }] }];
+    { who: q.npc, text: lines.ask, choices: [{ t: tr("Som-hi!"), f: () => openChallenge(k) }, { t: tr("Explica-m'ho primer"), f: () => say([{ who: q.npc, text: q.idea }, { who: q.npc, text: tr("Preparat/da?"), choices: [{ t: tr("Som-hi!"), f: () => openChallenge(k) }, { t: tr("Més tard"), f: null }] }]) }, { t: tr("Més tard"), f: null }] }];
 }
-const LINES = {
+const LINES_CA = {
   "2.2": { intro: ["Ai, ai, ai... Abans venia cambres frigorífiques i prou. Ara el meu nebot diu que he de «servititzar».", "Servititzar! Això sona a malaltia. Diu que les THD no només fan les coses més ràpides, sinó que canvien QUÈ ven l'empresa."], ask: "M'ajudes a posar ordre en aquests cinc casos?", done: "Ara ho tinc clar: vendré hores de fred garantides. Gràcies!" },
   "2.4": { intro: ["Cada setmana algú em diu que ha inventat «un mercat nou».", "Però moltes vegades és la botiga de tota la vida amb una app! Una cosa és un servei nou i una altra un mercat que abans no podia existir."], ask: "Em separes els casos?", done: "Ja no em colaran cap «mercat nou» que no ho sigui!" },
   "2.3": { intro: ["En Fum m'ha dit que si poso pantalles a totes les habitacions salvaré el planeta. Em fa olor de fum...", "Vull digitalitzar l'hotel, però vull saber de veritat què estalvio i què em costa."], ask: "Fem el balanç plegats?", done: "Balanç fet: estalvi menys cost. I amb dades per demostrar-ho!" },
@@ -993,37 +1519,46 @@ const LINES = {
   "2.6": { intro: ["Tinc camions, cambres de fred i una oficina plena de papers.", "Tothom em ven millores, però jo vull saber què canvia de veritat: com era ABANS i com serà DESPRÉS."], ask: "Repassem les millores?", done: "Abans i després: així sí que ho entenc!" },
   "2.7": { intro: ["L'Alcaldessa vol un informe de tecnologies per a cada empresa del poble.", "Però el vent ha entrat per la finestra i els blocs de l'informe s'han desordenat!"], ask: "M'ajudes a muntar l'informe?", done: "L'informe ja està en ordre. L'Alcaldessa estarà contenta." }
 };
+const LINES_ES = {
+  "2.2": { intro: ["Ay, ay, ay... Antes vendía cámaras frigoríficas y punto. Ahora mi sobrino dice que tengo que «servitizar».", "¡Servitizar! Eso suena a enfermedad. Dice que las THD no solo hacen las cosas más rápidas, sino que cambian QUÉ vende la empresa."], ask: "¿Me ayudas a poner orden en estos cinco casos?", done: "Ahora lo tengo claro: venderé horas de frío garantizadas. ¡Gracias!" },
+  "2.4": { intro: ["Cada semana alguien me dice que ha inventado «un mercado nuevo».", "¡Pero muchas veces es la tienda de toda la vida con una app! Una cosa es un servicio nuevo y otra un mercado que antes no podía existir."], ask: "¿Me separas los casos?", done: "¡Ya no me colarán ningún «mercado nuevo» que no lo sea!" },
+  "2.3": { intro: ["Fum me ha dicho que si pongo pantallas en todas las habitaciones salvaré el planeta. Me huele a humo...", "Quiero digitalizar el hotel, pero quiero saber de verdad qué ahorro y qué me cuesta."], ask: "¿Hacemos el balance juntos?", done: "Balance hecho: ahorro menos coste. ¡Y con datos para demostrarlo!" },
+  "2.5": { intro: ["Exporto material eléctrico a medio mundo. Tengo una oficina llena de ordenadores y un muelle lleno de grúas.", "Quiero invertir en tecnología, ¡pero no sé si cada cosa va a la oficina o al muelle!"], ask: "¿Me ayudas a decidir dónde pesa cada tecnología?", done: "Ahora ya sé qué va a la oficina y qué va al muelle." },
+  "2.6": { intro: ["Tengo camiones, cámaras de frío y una oficina llena de papeles.", "Todo el mundo me vende mejoras, pero yo quiero saber qué cambia de verdad: cómo era ANTES y cómo será DESPUÉS."], ask: "¿Repasamos las mejoras?", done: "Antes y después: ¡así sí que lo entiendo!" },
+  "2.7": { intro: ["La alcaldesa quiere un informe de tecnologías para cada empresa del pueblo.", "¡Pero el viento ha entrado por la ventana y los bloques del informe se han desordenado!"], ask: "¿Me ayudas a montar el informe?", done: "El informe ya está en orden. La alcaldesa estará contenta." }
+};
+function LN(k) { return (LANG === "es" ? LINES_ES : LINES_CA)[k]; }
 function talk(n) {
   const nSeals = Object.keys(S.seals).length;
   switch (n.id) {
     case "ada":
-      if (S.seals["2.1"]) return say(questIntro("2.1", { done: "Ja tens el segell de les onze fitxes. Ets un/a crac." }));
+      if (S.seals["2.1"]) return say(questIntro("2.1", { done: tr("Ja tens el segell de les onze fitxes. Ets un/a crac.") }));
       if (S.fitxes.length < FITXES.length) {
         const falten = FITXES.filter(f => !S.fitxes.includes(f.id)).slice(0, 3).map(f => f.lloc);
-        return say([{ who: "ada", text: `Portes ${S.fitxes.length} de 11 fitxes. Busca les espurnes daurades. Pistes: ${falten.join("; ")}.` },
-          { who: "ada", text: "Recorda: les THD són transversals, combinables i transformadores. Mira també el cartell de la plaça." }]);
+        return say([{ who: "ada", text: tr("Portes {n} de 11 fitxes. Busca les espurnes daurades. Pistes: {p}.", { n: S.fitxes.length, p: falten.join("; ") }) },
+          { who: "ada", text: tr("Recorda: les THD són transversals, combinables i transformadores. Mira també el cartell de la plaça.") }]);
       }
-      return say(questIntro("2.1", { intro: ["Has trobat les onze! Ara demostra-ho.", "Primer classificaràs les tecnologies en cinc famílies; després, quatre preguntes sobre les seves característiques."], ask: "Comencem la prova?", done: "" }));
-    case "pere": return say(questIntro("2.2", LINES["2.2"]));
-    case "rosa": return say(questIntro("2.4", LINES["2.4"]));
-    case "marta": return say(questIntro("2.3", LINES["2.3"]));
-    case "jordi": return say(questIntro("2.5", LINES["2.5"]));
-    case "laia": return say(questIntro("2.6", LINES["2.6"]));
-    case "clara": return say(questIntro("2.7", LINES["2.7"]));
+      return say(questIntro("2.1", { intro: [tr("Has trobat les onze! Ara demostra-ho."), tr("Primer classificaràs les tecnologies en cinc famílies; després, quatre preguntes sobre les seves característiques.")], ask: tr("Comencem la prova?"), done: "" }));
+    case "pere": return say(questIntro("2.2", LN("2.2")));
+    case "rosa": return say(questIntro("2.4", LN("2.4")));
+    case "marta": return say(questIntro("2.3", LN("2.3")));
+    case "jordi": return say(questIntro("2.5", LN("2.5")));
+    case "laia": return say(questIntro("2.6", LN("2.6")));
+    case "clara": return say(questIntro("2.7", LN("2.7")));
     case "alcaldessa":
-      if (S.boss?.won) return say([{ who: "alcaldessa", text: "Gràcies a tu, Vilabit es digitalitzarà amb cap i no amb fum. Pots descarregar el teu informe des de «Missions»." }]);
-      if (nSeals < 7) return say([{ who: "alcaldessa", text: `Benvingut/da, {nom}. Per parlar a l'assemblea necessito els set segells. Te'n falten ${7 - nSeals}.` },
-        { who: "alcaldessa", text: "Els veïns amb un «!» groc t'esperen. Obre «Missions» (tecla Q) per veure on són." }]);
-      return say([{ who: "alcaldessa", text: "Tens els set segells! L'assemblea comença ara mateix." }, { who: "fum", text: "Ha, ha! Un/a aprenent contra el gran Fum? Les meves ofertes són irresistibles!" },
-        { who: "alcaldessa", text: "Rebat cada afirmació d'en Fum. Si perds tota la credibilitat, podràs tornar-ho a provar.", choices: [{ t: "Que comenci el debat!", f: openBoss }, { t: "Encara no", f: null }] }]);
+      if (S.boss?.won) return say([{ who: "alcaldessa", text: tr("Gràcies a tu, Vilabit es digitalitzarà amb cap i no amb fum. Pots descarregar el teu informe des de «Missions».") }]);
+      if (nSeals < 7) return say([{ who: "alcaldessa", text: tr("Benvingut/da, {nom}. Per parlar a l'assemblea necessito els set segells. Te'n falten {n}.", { n: 7 - nSeals }) },
+        { who: "alcaldessa", text: tr("Els veïns amb un «!» groc t'esperen. Obre «Missions» (tecla Q) per veure on són.") }]);
+      return say([{ who: "alcaldessa", text: tr("Tens els set segells! L'assemblea comença ara mateix.") }, { who: "fum", text: tr("Ha, ha! Un/a aprenent contra el gran Fum? Les meves ofertes són irresistibles!") },
+        { who: "alcaldessa", text: tr("Rebat cada afirmació d'en Fum. Si perds tota la credibilitat, podràs tornar-ho a provar."), choices: [{ t: tr("Que comenci el debat!"), f: openBoss }, { t: tr("Encara no"), f: null }] }]);
     case "fum":
       if (nSeals === 7 && !S.boss?.won) return talk(npcById.alcaldessa);
-      if (S.boss?.won) return say([{ who: "fum", text: "Està bé, està bé... Potser a la fleca n'hi ha prou amb una bona base de dades. Me'n vaig a un altre poble." }]);
-      return say([{ who: "fum", text: shuffle(["Psst! Vols un blockchain per a la teva fleca? Preu d'amic!", "La meva IA ho fa tot sola. Ni l'has d'endollar!", "Big data? Tinc tres Excels enormes. Big, big data!", "Digitalitzar salva el planeta. Sempre. Ho diu el meu fullet!", "Robots industrials per fer la comptabilitat! Oferta limitada!"])[0] }, { who: "player", name: S.name || "Tu", text: "Hmm... això em sona a fum. Quan tingui els set segells, en parlarem a l'assemblea." }]);
-    case "pau": return say([{ who: "pau", text: "Les espurnes daurades són fitxes de tecnologies! N'hi ha prop del port, del magatzem, de l'hotel i de la biblioteca." }, { who: "pau", text: "I els cartells de fusta expliquen la teoria. La meva mare diu que s'han de llegir abans de cada prova." }]);
-    case "toni": return say([{ who: "toni", text: "A la gestoria hem posat IA per llegir les factures i un robot de programari, l'RPA, que les entra al programa." }, { who: "toni", text: "Un cobot no, eh! Els cobots són robots físics per a la planta. L'RPA és programari d'oficina." }]);
-    case "biel": return say([{ who: "biel", text: "A l'agència unim les dades del web, de la botiga i del CRM. La IA prediu quins clients marxaran." }, { who: "biel", text: "Però si les dades són dolentes, la IA treu conclusions falses amb cara de científiques. Dades bones primer!" }]);
-    case "bit": SFX.talk(); return say([{ who: "bit", text: shuffle(["Miau. (El gat et mira com si sabés que la ciberseguretat és una habilitadora.)", "Prrr... (S'estira sobre el sensor de temperatura. Ara marca 38 °C.)", "Miau! (Ha trepitjat el teclat i ha creat un mercat nou.)"])[0] }]);
+      if (S.boss?.won) return say([{ who: "fum", text: tr("Està bé, està bé... Potser a la fleca n'hi ha prou amb una bona base de dades. Me'n vaig a un altre poble.") }]);
+      return say([{ who: "fum", text: tr(shuffle(["Psst! Vols un blockchain per a la teva fleca? Preu d'amic!", "La meva IA ho fa tot sola. Ni l'has d'endollar!", "Big data? Tinc tres Excels enormes. Big, big data!", "Digitalitzar salva el planeta. Sempre. Ho diu el meu fullet!", "Robots industrials per fer la comptabilitat! Oferta limitada!"])[0]) }, { who: "player", name: S.name || tr("Tu"), text: tr("Hmm... això em sona a fum. Quan tingui els set segells, en parlarem a l'assemblea.") }]);
+    case "pau": return say([{ who: "pau", text: tr("Les espurnes daurades són fitxes de tecnologies! N'hi ha prop del port, del magatzem, de l'hotel i de la biblioteca.") }, { who: "pau", text: tr("I els cartells de fusta expliquen la teoria. La meva mare diu que s'han de llegir abans de cada prova.") }]);
+    case "toni": return say([{ who: "toni", text: tr("A la gestoria hem posat IA per llegir les factures i un robot de programari, l'RPA, que les entra al programa.") }, { who: "toni", text: tr("Un cobot no, eh! Els cobots són robots físics per a la planta. L'RPA és programari d'oficina.") }]);
+    case "biel": return say([{ who: "biel", text: tr("A l'agència unim les dades del web, de la botiga i del CRM. La IA prediu quins clients marxaran.") }, { who: "biel", text: tr("Però si les dades són dolentes, la IA treu conclusions falses amb cara de científiques. Dades bones primer!") }]);
+    case "bit": SFX.talk(); return say([{ who: "bit", text: tr(shuffle(["Miau. (El gat et mira com si sabés que la ciberseguretat és una habilitadora.)", "Prrr... (S'estira sobre el sensor de temperatura. Ara marca 38 °C.)", "Miau! (Ha trepitjat el teclat i ha creat un mercat nou.)"])[0]) }]);
   }
 }
 
@@ -1038,7 +1573,7 @@ function openChallenge(k, practice = false) {
 }
 function head(title, extra = "") {
   const q = QUESTS[C.k];
-  return `<div class="chal-head"><div><div class="eyebrow">Criteri ${C.k} · ${esc(q.nom)}${C.practice ? " · pràctica" : ""}</div><h2>${esc(title)}</h2></div><div class="row"><span class="pill">Part ${C.part + 1} de ${q.parts.length}</span>${extra}</div></div>`;
+  return `<div class="chal-head"><div><div class="eyebrow">${tr("Criteri")} ${C.k} · ${esc(q.nom)}${C.practice ? " · " + tr("pràctica") : ""}</div><h2>${esc(title)}</h2></div><div class="row"><span class="pill">${tr("Part {a} de {b}", { a: C.part + 1, b: q.parts.length })}</span>${extra}</div></div>`;
 }
 function renderPart() {
   const part = QUESTS[C.k].parts[C.part];
@@ -1053,10 +1588,10 @@ function renderClassify(part) {
   const st = { assign: {}, sel: null, checked: false, firstDone: false, locked: {} };
   const items = shuffle(part.items);
   C.cl = st;
-  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><div class="pool" id="pool"></div><div class="bins" id="bins"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>Comprova</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><div class="pool" id="pool"></div><div class="bins" id="bins"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>${tr("Comprova")}</button><button class="btn ghost" id="cancel" type="button">${tr("Surt")}</button></div>`);
   const draw = () => {
     const chip = it => `<button type="button" class="chip ${st.sel === it.id ? "sel" : ""} ${st.locked[it.id] ? "good" : ""} ${st.wrong && st.wrong.includes(it.id) ? "wrong" : ""}" data-id="${it.id}">${esc(it.text)}</button>`;
-    $("pool").innerHTML = items.filter(it => !st.assign[it.id]).map(chip).join("") || `<span class="eyebrow">Totes col·locades</span>`;
+    $("pool").innerHTML = items.filter(it => !st.assign[it.id]).map(chip).join("") || `<span class="eyebrow">${tr("Totes col·locades")}</span>`;
     $("bins").innerHTML = part.bins.map(b => `<div class="bin" data-bin="${b.id}" role="button" tabindex="0"><div class="bl">${esc(b.label)}</div>${b.sub ? `<div class="bs">${esc(b.sub)}</div>` : ""}${items.filter(it => st.assign[it.id] === b.id).map(chip).join("")}</div>`).join("");
     $("chk").disabled = items.some(it => !st.assign[it.id]);
     $("win").querySelectorAll(".chip").forEach(el => el.onclick = (e) => {
@@ -1078,14 +1613,14 @@ function renderClassify(part) {
     st.wrong = wrong.map(it => it.id);
     if (!wrong.length) {
       SFX.ok(); draw();
-      $("fb").innerHTML = `<div class="fb ok"><b>Perfecte!</b> Totes al seu lloc.</div>`;
-      $("chk").textContent = "Continua"; $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus();
+      $("fb").innerHTML = `<div class="fb ok"><b>${tr("Perfecte!")}</b> ${tr("Totes al seu lloc.")}</div>`;
+      $("chk").textContent = tr("Continua"); $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus();
     } else {
       SFX.bad(); feeling = 8;
       // les incorrectes tornen a la safata
       wrong.forEach(it => delete st.assign[it.id]);
       draw();
-      $("fb").innerHTML = `<div class="fb ko"><b>${wrong.length} ${wrong.length === 1 ? "no és" : "no són"} al seu lloc.</b> Han tornat a la safata. Pistes:<ul>${wrong.map(it => `<li>${esc(it.why)}</li>`).join("")}</ul></div>`;
+      $("fb").innerHTML = `<div class="fb ko"><b>${tr(wrong.length === 1 ? "{n} no és al seu lloc." : "{n} no són al seu lloc.", { n: wrong.length })}</b> ${tr("Han tornat a la safata. Pistes:")}<ul>${wrong.map(it => `<li>${esc(it.why)}</li>`).join("")}</ul></div>`;
     }
   };
   draw();
@@ -1098,14 +1633,14 @@ function renderMcq(part) {
   const qs = part.questions.map(q => { const order = shuffle(q.opts.map((o, i) => i)); return { ...q, order }; });
   const show = () => {
     const q = qs[qi];
-    modalOpen(`${head(part.titol, `<span class="pill">Pregunta ${qi + 1}/${qs.length}</span>`)}<p class="q">${esc(q.q)}</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>Continua</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+    modalOpen(`${head(part.titol, `<span class="pill">${tr("Pregunta")} ${qi + 1}/${qs.length}</span>`)}<p class="q">${esc(q.q)}</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>${tr("Continua")}</button><button class="btn ghost" id="cancel" type="button">${tr("Surt")}</button></div>`);
     $("cancel").onclick = () => { modalClose(); C = null; };
     $("win").querySelectorAll(".opt").forEach(b => b.onclick = () => {
       const oi = +b.dataset.oi, ok = oi === q.a;
       C.stats.total++; C.stats.checks++; if (ok) C.stats.firstOk++; else C.stats.errors.push({ q: q.q, given: q.opts[oi], correct: q.opts[q.a], why: q.why });
       $("win").querySelectorAll(".opt").forEach(x => { x.disabled = true; if (+x.dataset.oi === q.a) x.classList.add("good"); });
       if (!ok) { b.classList.add("wrong"); SFX.bad(); feeling = 8; } else SFX.ok();
-      $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? "Correcte!" : "No és aquesta."}</b> ${esc(q.why)}</div>`;
+      $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? tr("Correcte!") : tr("No és aquesta.")}</b> ${esc(q.why)}</div>`;
       const nx = $("nxt"); nx.hidden = false; nx.focus();
       nx.onclick = () => { qi++; if (qi >= qs.length) nextPart(); else show(); };
     });
@@ -1117,11 +1652,11 @@ function renderMcq(part) {
 function renderOrder(part) {
   const st = { seq: [], locked: 0, firstDone: false };
   const pool = shuffle(part.items.map((t, i) => ({ id: i, text: t })));
-  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><h3>El teu informe</h3><div class="seq" id="seq"></div><h3>Blocs desordenats</h3><div class="pool" id="pool"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>Comprova</button><button class="btn ghost" id="cancel" type="button">Surt</button></div>`);
+  modalOpen(`${head(part.titol)}<p>${esc(part.prompt)}</p><h3>${tr("El teu informe")}</h3><div class="seq" id="seq"></div><h3>${tr("Blocs desordenats")}</h3><div class="pool" id="pool"></div><div id="fb"></div><div class="row" style="margin-top:12px"><button class="btn" id="chk" type="button" disabled>${tr("Comprova")}</button><button class="btn ghost" id="cancel" type="button">${tr("Surt")}</button></div>`);
   $("cancel").onclick = () => { modalClose(); C = null; };
   const draw = () => {
-    $("seq").innerHTML = st.seq.map((it, i) => `<button type="button" class="chip ${i < st.locked ? "good" : ""}" data-i="${i}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">Toca els blocs de sota en ordre</span>`;
-    $("pool").innerHTML = pool.filter(it => !st.seq.includes(it)).map(it => `<button type="button" class="chip" data-id="${it.id}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">Tots col·locats</span>`;
+    $("seq").innerHTML = st.seq.map((it, i) => `<button type="button" class="chip ${i < st.locked ? "good" : ""}" data-i="${i}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">${tr("Toca els blocs de sota en ordre")}</span>`;
+    $("pool").innerHTML = pool.filter(it => !st.seq.includes(it)).map(it => `<button type="button" class="chip" data-id="${it.id}">${esc(it.text)}</button>`).join("") || `<span class="eyebrow">${tr("Tots col·locats")}</span>`;
     $("chk").disabled = st.seq.length !== part.items.length;
     $("seq").querySelectorAll(".chip").forEach(el => el.onclick = () => { const i = +el.dataset.i; if (i < st.locked) return; st.seq.splice(i, 1); SFX.talk(); draw(); });
     $("pool").querySelectorAll(".chip").forEach(el => el.onclick = () => { st.seq.push(pool.find(p => p.id === +el.dataset.id)); SFX.talk(); draw(); });
@@ -1131,16 +1666,16 @@ function renderOrder(part) {
     const res = st.seq.map((it, i) => it.id === i);
     if (!st.firstDone) {
       st.firstDone = true; C.stats.total += part.items.length; C.stats.firstOk += res.filter(Boolean).length;
-      st.seq.forEach((it, i) => { if (it.id !== i) C.stats.errors.push({ q: "Bloc " + (i + 1) + " de l'informe", given: it.text, correct: part.items[i], why: "Ordre de l'informe: " + part.items.join(" · ") + "." }); });
+      st.seq.forEach((it, i) => { if (it.id !== i) C.stats.errors.push({ q: tr("Bloc {n} de l'informe", { n: i + 1 }), given: it.text, correct: part.items[i], why: tr("Ordre de l'informe:") + " " + part.items.join(" · ") + "." }); });
     }
     const firstBad = res.indexOf(false);
     if (firstBad === -1) {
       st.locked = st.seq.length; draw(); SFX.ok();
-      $("fb").innerHTML = `<div class="fb ok"><b>Informe en ordre!</b></div>`; $("chk").textContent = "Continua"; $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus(); return;
+      $("fb").innerHTML = `<div class="fb ok"><b>${tr("Informe en ordre!")}</b></div>`; $("chk").textContent = tr("Continua"); $("chk").disabled = false; $("chk").onclick = nextPart; $("chk").focus(); return;
     }
     SFX.bad(); feeling = 8;
     st.seq = st.seq.slice(0, firstBad); st.locked = firstBad; draw();
-    $("fb").innerHTML = `<div class="fb ko"><b>El bloc ${firstBad + 1} no va aquí.</b> Els blocs ben posats fins al primer error es queden; la resta han tornat a la safata. Pensa: què ha de trobar primer qui obre l'informe?</div>`;
+    $("fb").innerHTML = `<div class="fb ko"><b>${tr("El bloc {n} no va aquí.", { n: firstBad + 1 })}</b> ${tr("Els blocs ben posats fins al primer error es queden; la resta han tornat a la safata. Pensa: què ha de trobar primer qui obre l'informe?")}</div>`;
   };
   draw();
 }
@@ -1149,14 +1684,14 @@ function finishChallenge() {
   const k = C.k, q = QUESTS[k], st = C.stats;
   const pct = st.total ? Math.round(100 * st.firstOk / st.total) : 0;
   if (C.practice) {
-    modalOpen(`<div class="eyebrow">Pràctica · no puntua</div><h2>Prova repassada</h2><p>Encerts a la primera: <b>${st.firstOk}/${st.total}</b> (${pct}%). La puntuació oficial és la de la primera vegada.</p><div class="row"><button class="btn" id="ok" type="button">Torna a Vilabit</button></div>`);
+    modalOpen(`<div class="eyebrow">${tr("Pràctica · no puntua")}</div><h2>${tr("Prova repassada")}</h2><p>${tr("Encerts a la primera:")} <b>${st.firstOk}/${st.total}</b> (${pct}%). ${tr("La puntuació oficial és la de la primera vegada.")}</p><div class="row"><button class="btn" id="ok" type="button">${tr("Torna a Vilabit")}</button></div>`);
     $("ok").onclick = () => { modalClose(); }; C = null; return;
   }
   st.ms = Date.now() - st.startedAt; delete st.startedAt;
   S.stats[k] = st; S.seals[k] = true; addXp(60 + pct * 1.4); save(); hud();
   SFX.seal(); confetti();
   const npc = npcById[q.npc];
-  modalOpen(`<div class="eyebrow">Segell aconseguit</div><h2>Segell ${k} · ${esc(q.nom)}</h2><div class="row" style="gap:18px;align-items:center"><div class="seal on" style="width:72px;height:72px;font-size:22px">${k}</div><div><div class="big">${pct}%</div><div class="eyebrow">encerts a la primera (${st.firstOk}/${st.total})</div></div></div><p>${esc(CA[k])}</p><p><b>Idea clau:</b> ${esc(q.idea)}</p><p>${Object.keys(S.seals).length === 7 ? "<b>Ja tens els set segells!</b> Ves a l'Ajuntament i parla amb l'Alcaldessa." : `Et falten ${7 - Object.keys(S.seals).length} segells.`}</p><div class="row"><button class="btn" id="ok" type="button">Torna a Vilabit</button></div>`);
+  modalOpen(`<div class="eyebrow">${tr("Segell aconseguit")}</div><h2>${tr("Segell")} ${k} · ${esc(q.nom)}</h2><div class="row" style="gap:18px;align-items:center"><div class="seal on" style="width:72px;height:72px;font-size:22px">${k}</div><div><div class="big">${pct}%</div><div class="eyebrow">${tr("encerts a la primera")} (${st.firstOk}/${st.total})</div></div></div><p>${esc(CA[k])}</p><p><b>${tr("Idea clau:")}</b> ${esc(q.idea)}</p><p>${Object.keys(S.seals).length === 7 ? "<b>" + tr("Ja tens els set segells!") + "</b> " + tr("Ves a l'Ajuntament i parla amb l'Alcaldessa.") : tr("Et falten {n} segells.", { n: 7 - Object.keys(S.seals).length })}</p><div class="row"><button class="btn" id="ok" type="button">${tr("Torna a Vilabit")}</button></div>`);
   $("ok").onclick = () => { modalClose(); }; $("ok").focus();
   C = null;
 }
@@ -1171,13 +1706,13 @@ function openBoss() {
 }
 function renderBoss() {
   const q = B.qs[B.i];
-  modalOpen(`<div class="chal-head"><div><div class="eyebrow">Assemblea de Vilabit · debat final${S.boss.attempts > 1 ? " · intent " + S.boss.attempts : ""}</div><h2>Debat contra en Fum</h2></div><span class="pill">Afirmació ${B.i + 1}/${B.qs.length}</span></div>
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">${tr("Assemblea de Vilabit · debat final")}${S.boss.attempts > 1 ? " · " + tr("intent") + " " + S.boss.attempts : ""}</div><h2>${tr("Debat contra en Fum")}</h2></div><span class="pill">${tr("Afirmació")} ${B.i + 1}/${B.qs.length}</span></div>
   <div class="boss-grid"><canvas class="boss-por" id="bpor" width="120" height="120"></canvas><div style="min-width:0;display:grid;gap:8px">
-  <div class="row" style="justify-content:space-between"><span class="eyebrow">Fum (hype)</span><span class="hearts" aria-label="Credibilitat">${"♥".repeat(B.hearts)}${"♡".repeat(3 - B.hearts)}</span></div>
+  <div class="row" style="justify-content:space-between"><span class="eyebrow">Fum (hype)</span><span class="hearts" aria-label="${tr("Credibilitat")}">${"♥".repeat(B.hearts)}${"♡".repeat(3 - B.hearts)}</span></div>
   <div class="bar"><i style="width:${B.hype}%"></i></div>
   <div class="bubble">«${esc(q.claim)}»</div></div></div>
-  <p class="q">Com li respons?</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div>
-  <div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>Continua</button><button class="btn ghost" id="cancel" type="button">Abandona el debat</button></div>`);
+  <p class="q">${tr("Com li respons?")}</p><div class="opts">${q.order.map((oi, k) => `<button type="button" class="opt" data-oi="${oi}">${String.fromCharCode(65 + k)}. ${esc(q.opts[oi])}</button>`).join("")}</div><div id="fb"></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="nxt" type="button" hidden>${tr("Continua")}</button><button class="btn ghost" id="cancel" type="button">${tr("Abandona el debat")}</button></div>`);
   portrait($("bpor"), npcById.fum);
   $("cancel").onclick = () => { modalClose(); B = null; save(); };
   $("win").querySelectorAll(".opt").forEach(b => b.onclick = () => {
@@ -1185,10 +1720,10 @@ function renderBoss() {
     $("win").querySelectorAll(".opt").forEach(x => { x.disabled = true; if (+x.dataset.oi === q.a) x.classList.add("good"); });
     if (ok) { B.ok++; B.hype = Math.max(0, 100 - Math.round(100 * B.ok / B.qs.length)); SFX.ok(); }
     else { B.hearts--; b.classList.add("wrong"); SFX.bad(); feeling = 14; }
-    if (!ok) B.errs.push({ q: "En Fum: «" + q.claim + "»", given: q.opts[oi], correct: q.opts[q.a], why: q.why });
+    if (!ok) B.errs.push({ q: npcName(npcById.fum) + ": «" + q.claim + "»", given: q.opts[oi], correct: q.opts[q.a], why: q.why });
     $("win").querySelector(".bar i").style.width = B.hype + "%";
     $("win").querySelector(".hearts").textContent = "♥".repeat(Math.max(0, B.hearts)) + "♡".repeat(3 - Math.max(0, B.hearts));
-    $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? "Rebatut! En Fum s'encongeix." : "En Fum somriu... Has perdut credibilitat."}</b> ${esc(q.why)}</div>`;
+    $("fb").innerHTML = `<div class="fb ${ok ? "ok" : "ko"}"><b>${ok ? tr("Rebatut! En Fum s'encongeix.") : tr("En Fum somriu... Has perdut credibilitat.")}</b> ${esc(q.why)}</div>`;
     const nx = $("nxt"); nx.hidden = false; nx.focus();
     nx.onclick = () => {
       if (B.hearts <= 0) return bossLost();
@@ -1199,7 +1734,7 @@ function renderBoss() {
 function scoreBoss() { if (B && B.first && !S.boss.scored) { S.boss.scored = true; S.boss.firstOk = B.ok; S.boss.errors = B.errs; } }
 function bossLost() {
   scoreBoss(); save();
-  modalOpen(`<div class="eyebrow">L'assemblea dubta</div><h2>En Fum ha guanyat aquest debat</h2><p>Has perdut tota la credibilitat. Repassa els cartells i el Còdex i torna-ho a provar: les preguntes canvien d'ordre.</p><p>La puntuació del debat és la del primer intent.</p><div class="row"><button class="btn" id="again" type="button">Torna-ho a provar</button><button class="btn ghost" id="later" type="button">Ara no</button></div>`);
+  modalOpen(`<div class="eyebrow">${tr("L'assemblea dubta")}</div><h2>${tr("En Fum ha guanyat aquest debat")}</h2><p>${tr("Has perdut tota la credibilitat. Repassa els cartells i el Còdex i torna-ho a provar: les preguntes canvien d'ordre.")}</p><p>${tr("La puntuació del debat és la del primer intent.")}</p><div class="row"><button class="btn" id="again" type="button">${tr("Torna-ho a provar")}</button><button class="btn ghost" id="later" type="button">${tr("Ara no")}</button></div>`);
   $("again").onclick = openBoss; $("later").onclick = () => { modalClose(); };
 }
 function bossWon() {
@@ -1221,24 +1756,24 @@ function results() {
   return { rows, bossPct, global };
 }
 function level(p) {
-  if (p == null) return { t: "Pendent", c: "n" };
-  if (p >= 90) return { t: "Excel·lent", c: "a" };
-  if (p >= 70) return { t: "Assolit", c: "b" };
-  if (p >= 50) return { t: "En procés", c: "c" };
-  return { t: "Cal repassar", c: "d" };
+  if (p == null) return { t: tr("Pendent"), c: "n" };
+  if (p >= 90) return { t: tr("Excel·lent"), c: "a" };
+  if (p >= 70) return { t: tr("Assolit"), c: "b" };
+  if (p >= 50) return { t: tr("En procés"), c: "c" };
+  return { t: tr("Cal repassar"), c: "d" };
 }
-function rank(g) { return g >= 90 ? "Mestre/a de la transformació digital" : g >= 75 ? "Consultor/a digital" : g >= 60 ? "Tècnic/a en digitalització" : "Aprenent digital"; }
+function rank(g) { return tr(g >= 90 ? "Mestre/a de la transformació digital" : g >= 75 ? "Consultor/a digital" : g >= 60 ? "Tècnic/a en digitalització" : "Aprenent digital"); }
 function fmtMin(ms) { const m = Math.max(1, Math.round(ms / 60000)); return m + " min"; }
 function resultsTable() {
   const R = results();
-  return `<div class="tbl-wrap"><table class="res"><thead><tr><th>Criteri</th><th>Prova</th><th>Encerts a la primera</th><th>%</th><th>Nivell</th></tr></thead><tbody>${R.rows.map(r => { const l = level(r.pct); return `<tr><td><b>${r.k}</b> ${esc(r.ca)}</td><td>${esc(r.prova)}</td><td>${r.st ? r.st.firstOk + "/" + r.st.total : "—"}</td><td>${r.pct ?? "—"}</td><td><span class="lvl ${l.c}">${l.t}</span></td></tr>`; }).join("")}<tr><td><b>Debat</b> Integra tots els criteris</td><td>Debat contra en Fum</td><td>${S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "—"}</td><td>${R.bossPct ?? "—"}</td><td><span class="lvl ${level(R.bossPct).c}">${level(R.bossPct).t}</span></td></tr></tbody></table></div>`;
+  return `<div class="tbl-wrap"><table class="res"><thead><tr><th>${tr("Criteri")}</th><th>${tr("Prova")}</th><th>${tr("Encerts a la primera")}</th><th>%</th><th>${tr("Nivell")}</th></tr></thead><tbody>${R.rows.map(r => { const l = level(r.pct); return `<tr><td><b>${r.k}</b> ${esc(r.ca)}</td><td>${esc(r.prova)}</td><td>${r.st ? r.st.firstOk + "/" + r.st.total : "—"}</td><td>${r.pct ?? "—"}</td><td><span class="lvl ${l.c}">${l.t}</span></td></tr>`; }).join("")}<tr><td><b>${tr("Debat")}</b> ${tr("Integra tots els criteris")}</td><td>${tr("Debat contra en Fum")}</td><td>${S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "—"}</td><td>${R.bossPct ?? "—"}</td><td><span class="lvl ${level(R.bossPct).c}">${level(R.bossPct).t}</span></td></tr></tbody></table></div>`;
 }
 function endScreen() {
   const R = results();
-  modalOpen(`<div class="eyebrow">Vilabit és a salvo del fum</div><h2>Has guanyat el debat!</h2><p>En Fum ha recollit els fullets i ha marxat del poble. L'Alcaldessa t'ha nomenat <b>${esc(rank(R.global))}</b>.</p>
-  <div class="stats-row"><div><div class="big">${R.global}</div><div class="eyebrow">puntuació sobre 100</div></div><div><div class="big">${Object.keys(S.seals).length}/7</div><div class="eyebrow">segells</div></div><div><div class="big">${S.fitxes.length}/11</div><div class="eyebrow">fitxes THD</div></div><div><div class="big">${S.xp}</div><div class="eyebrow">XP</div></div></div>
-  ${resultsTable()}<p>Descarrega l'informe en PDF i lliura'l al teu professor o professora.</p><div id="pdfMsg"></div>
-  <div class="row"><button class="btn" id="pdf" type="button">Descarrega l'informe PDF</button><button class="btn ghost" id="cont" type="button">Continua explorant</button></div>`);
+  modalOpen(`<div class="eyebrow">${tr("Vilabit és a salvo del fum")}</div><h2>${tr("Has guanyat el debat!")}</h2><p>${tr("En Fum ha recollit els fullets i ha marxat del poble. L'Alcaldessa t'ha nomenat")} <b>${esc(rank(R.global))}</b>.</p>
+  <div class="stats-row"><div><div class="big">${R.global}</div><div class="eyebrow">${tr("puntuació sobre 100")}</div></div><div><div class="big">${Object.keys(S.seals).length}/7</div><div class="eyebrow">${tr("segells")}</div></div><div><div class="big">${S.fitxes.length}/11</div><div class="eyebrow">${tr("fitxes THD")}</div></div><div><div class="big">${S.xp}</div><div class="eyebrow">XP</div></div></div>
+  ${resultsTable()}<p>${tr("Descarrega l'informe en PDF i lliura'l al teu professor o professora.")}</p><div id="pdfMsg"></div>
+  <div class="row"><button class="btn" id="pdf" type="button">${tr("Descarrega l'informe PDF")}</button><button class="btn ghost" id="cont" type="button">${tr("Continua explorant")}</button></div>`);
   $("pdf").onclick = makePdf; $("cont").onclick = () => modalClose(); $("pdf").focus();
 }
 function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36).toUpperCase().padStart(7, "0").slice(-7); }
@@ -1247,55 +1782,56 @@ let dlCap = null;
 function initDownloads() { try { if (window.claude && typeof window.claude.use === "function") dlCap = window.claude.use("downloads").catch(() => null); } catch (e) { dlCap = null; } }
 async function makePdf() {
   const msg = $("pdfMsg");
-  if (!window.jspdf || !window.jspdf.jsPDF) { if (msg) msg.innerHTML = `<div class="fb ko">No s'ha pogut carregar el generador de PDF. Comprova la connexió a Internet i torna-ho a provar.</div>`; return; }
+  if (!window.jspdf || !window.jspdf.jsPDF) { if (msg) msg.innerHTML = `<div class="fb ko">${tr("No s'ha pogut carregar el generador de PDF. Comprova la connexió a Internet i torna-ho a provar.")}</div>`; return; }
   const doc = buildPdf();
-  const fname = "Vilabit_RA2_" + (S.name || "alumne").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") + ".pdf";
+  const fname = "Vilabit_RA2_" + (S.name || tr("alumne")).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") + ".pdf";
   const cap = dlCap ? await dlCap : null;
   if (cap) {
-    try { await cap.save({ filename: fname, data: doc.output("blob") }); if (msg) msg.innerHTML = `<div class="fb ok">Informe desat.</div>`; }
-    catch (e) { if (msg) msg.innerHTML = `<div class="fb ko">${e && e.code === "declined" ? "Has cancel·lat la descàrrega." : "No s'ha pogut desar l'informe en aquesta vista."}</div>`; }
+    try { await cap.save({ filename: fname, data: doc.output("blob") }); if (msg) msg.innerHTML = `<div class="fb ok">${tr("Informe desat.")}</div>`; }
+    catch (e) { if (msg) msg.innerHTML = `<div class="fb ko">${e && e.code === "declined" ? tr("Has cancel·lat la descàrrega.") : tr("No s'ha pogut desar l'informe en aquesta vista.")}</div>`; }
     return;
   }
   doc.save(fname);
-  if (msg) msg.innerHTML = `<div class="fb ok">Informe descarregat: <b>${esc(fname)}</b>.</div>`;
+  if (msg) msg.innerHTML = `<div class="fb ok">${tr("Informe descarregat:")} <b>${esc(fname)}</b>.</div>`;
 }
 function buildPdf() {
   const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit: "mm", format: "a4" });
   const R = results(); const now = new Date(S.finishedAt || Date.now());
-  const date = now.toLocaleDateString("ca-ES") + " " + now.toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" });
+  const loc = LANG === "es" ? "es-ES" : "ca-ES";
+  const date = now.toLocaleDateString(loc) + " " + now.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" });
   const code = hash(JSON.stringify([S.name, S.group, R.global, R.rows.map(r => r.pct), R.bossPct, S.started]));
   const M = 16, PW = 210, CW = PW - 2 * M; let y = 0;
   const navy = [35, 40, 72], red = [225, 33, 29], gold = [214, 160, 20], ink = [29, 33, 64], grey = [110, 114, 140];
   const tx = (s, x, yy, o) => doc.text(pdfTxt(s), x, yy, o);
-  const footer = () => { const n = doc.internal.getNumberOfPages(); for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...grey); tx(`Els Segells de Vilabit · Joc formatiu del MP 1665 · Codi de verificació ${code}`, M, 289); tx(`Pàgina ${i} de ${n}`, PW - M, 289, { align: "right" }); } };
+  const footer = () => { const n = doc.internal.getNumberOfPages(); for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...grey); tx(tr("Els Segells de Vilabit · Joc formatiu del MP 1665 · Codi de verificació {c}", { c: code }), M, 289); tx(tr("Pàgina {i} de {n}", { i, n }), PW - M, 289, { align: "right" }); } };
   const need = (h) => { if (y + h > 280) { doc.addPage(); y = 18; } };
   // capçalera
   doc.setFillColor(...navy); doc.rect(0, 0, PW, 34, "F"); doc.setFillColor(...red); doc.rect(0, 34, PW, 2, "F");
-  doc.setTextColor(255, 204, 77); doc.setFont("helvetica", "bold"); doc.setFontSize(22); tx("ELS SEGELLS DE VILABIT", M, 16);
+  doc.setTextColor(255, 204, 77); doc.setFont("helvetica", "bold"); doc.setFontSize(22); tx(tr("ELS SEGELLS DE VILABIT"), M, 16);
   doc.setTextColor(255, 246, 227); doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  tx("Informe de partida · MP 1665 Digitalització aplicada als sectors productius", M, 24); tx("RA2 · Tecnologies habilitadores digitals (THD)", M, 29.5);
+  tx(tr("Informe de partida · MP 1665 Digitalització aplicada als sectors productius"), M, 24); tx(tr("RA2 · Tecnologies habilitadores digitals (THD)"), M, 29.5);
   y = 46;
   doc.setTextColor(...ink); doc.setFontSize(10.5);
-  const kv = [["Alumne/a", S.name || "(sense nom)"], ["Grup", S.group || "-"], ["Data", date], ["Temps de joc", fmtMin(S.playMs)]];
-  kv.forEach(([k, v], i) => { const x = M + (i % 2) * (CW / 2); const yy = y + Math.floor(i / 2) * 7; doc.setFont("helvetica", "bold"); tx(k + ":", x, yy); doc.setFont("helvetica", "normal"); tx(v, x + 28, yy); });
+  const kv = [[tr("Alumne/a"), S.name || tr("(sense nom)")], [tr("Grup"), S.group || "-"], [tr("Data"), date], [tr("Temps de joc"), fmtMin(S.playMs)]];
+  kv.forEach(([k, v], i) => { const x = M + (i % 2) * (CW / 2); const yy = y + Math.floor(i / 2) * 7; doc.setFont("helvetica", "bold"); tx(k + ":", x, yy); const lw = Math.max(28, doc.getTextWidth(pdfTxt(k + ":")) + 3); doc.setFont("helvetica", "normal"); tx(v, x + lw, yy); });
   y += 18;
   // caixa de puntuació
   doc.setDrawColor(...navy); doc.setLineWidth(0.6); doc.setFillColor(248, 246, 238); doc.roundedRect(M, y, CW, 34, 3, 3, "FD");
   doc.setFont("helvetica", "bold"); doc.setFontSize(34); doc.setTextColor(...red); tx(String(R.global), M + 8, y + 22);
-  doc.setFontSize(10); doc.setTextColor(...grey); tx("puntuació global / 100", M + 8, y + 29);
+  doc.setFontSize(10); doc.setTextColor(...grey); tx(tr("puntuació global / 100"), M + 8, y + 29);
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(...ink); tx(rank(R.global), M + 62, y + 11);
   doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  tx(`Segells: ${Object.keys(S.seals).length}/7   ·   Fitxes THD: ${S.fitxes.length}/11   ·   Cartells llegits: ${S.cartells.length}/${CARTELLS.length}   ·   XP: ${S.xp}`, M + 62, y + 18);
-  tx(`Debat final: ${S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total + " al primer intent · " + S.boss.attempts + (S.boss.attempts === 1 ? " intent" : " intents") : "no fet"}`, M + 62, y + 24);
+  tx(tr("Segells: {a}/7   ·   Fitxes THD: {b}/11   ·   Cartells llegits: {c}/{d}   ·   XP: {e}", { a: Object.keys(S.seals).length, b: S.fitxes.length, c: S.cartells.length, d: CARTELLS.length, e: S.xp }), M + 62, y + 18);
+  tx(tr("Debat final:") + " " + (S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total + " " + tr("al primer intent") + " · " + S.boss.attempts + " " + tr(S.boss.attempts === 1 ? "intent" : "intents") : tr("no fet")), M + 62, y + 24);
   QUEST_ORDER.forEach((k, i) => { const cx = M + 66 + i * 15.5, cy = y + 30; if (S.seals[k]) { doc.setFillColor(255, 204, 77); doc.setDrawColor(...gold); doc.circle(cx, cy, 3.2, "FD"); } else { doc.setDrawColor(...grey); doc.circle(cx, cy, 3.2, "S"); } doc.setFontSize(6.5); doc.setTextColor(...ink); tx(k, cx, cy + 1, { align: "center" }); });
   y += 44;
   // RA
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Resultat d'aprenentatge", M, y); y += 5.5;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx(tr("Resultat d'aprenentatge"), M, y); y += 5.5;
   doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...ink);
   const raL = doc.splitTextToSize(pdfTxt(RA2), CW); doc.text(raL, M, y); y += raL.length * 4.3 + 5;
   // taula
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Resultats per criteri d'avaluació", M, y); y += 4;
-  const cols = [{ t: "Criteri", w: 82 }, { t: "Prova del joc", w: 40 }, { t: "Encerts", w: 18 }, { t: "%", w: 12 }, { t: "Nivell", w: 26 }];
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx(tr("Resultats per criteri d'avaluació"), M, y); y += 4;
+  const cols = [{ t: tr("Criteri"), w: 82 }, { t: tr("Prova del joc"), w: 40 }, { t: tr("Encerts"), w: 18 }, { t: "%", w: 12 }, { t: tr("Nivell"), w: 26 }];
   const rowH = (cells) => Math.max(...cells.map((c, i) => doc.splitTextToSize(pdfTxt(c), cols[i].w - 3).length)) * 4 + 3.5;
   const drawRow = (cells, headRow, shade) => {
     doc.setFont("helvetica", headRow ? "bold" : "normal"); doc.setFontSize(headRow ? 9 : 8.6);
@@ -1308,19 +1844,19 @@ function buildPdf() {
   };
   drawRow(cols.map(c => c.t), true);
   R.rows.forEach((r, i) => drawRow([r.k + " " + r.ca, r.prova, r.st ? r.st.firstOk + "/" + r.st.total : "-", r.pct == null ? "-" : String(r.pct), level(r.pct).t], false, i % 2 === 1));
-  drawRow(["Debat final (integra el RA2)", "Debat contra en Fum", S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "-", R.bossPct == null ? "-" : String(R.bossPct), level(R.bossPct).t], false, true);
+  drawRow([tr("Debat final (integra el RA2)"), tr("Debat contra en Fum"), S.boss?.scored ? S.boss.firstOk + "/" + S.boss.total : "-", R.bossPct == null ? "-" : String(R.bossPct), level(R.bossPct).t], false, true);
   y += 4; doc.setFontSize(8); doc.setTextColor(...grey); doc.setFont("helvetica", "italic");
-  const nota = doc.splitTextToSize(pdfTxt("Encerts = respostes correctes al primer intent de cada prova. La puntuació global és la mitjana dels set criteris i del debat. Nivells: Excel·lent 90-100 · Assolit 70-89 · En procés 50-69 · Cal repassar 0-49."), CW); doc.text(nota, M, y + 2); y += nota.length * 3.6 + 6;
+  const nota = doc.splitTextToSize(pdfTxt(tr("Encerts = respostes correctes al primer intent de cada prova. La puntuació global és la mitjana dels set criteris i del debat. Nivells: Excel·lent 90-100 · Assolit 70-89 · En procés 50-69 · Cal repassar 0-49.")), CW); doc.text(nota, M, y + 2); y += nota.length * 3.6 + 6;
   // errors
   const errs = [];
   QUEST_ORDER.forEach(k => (S.stats[k]?.errors || []).forEach(e => errs.push({ k, ...e })));
-  (S.boss?.errors || []).forEach(e => errs.push({ k: "Debat", ...e }));
-  need(14); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Per repassar", M, y); y += 5.5;
+  (S.boss?.errors || []).forEach(e => errs.push({ k: tr("Debat"), ...e }));
+  need(14); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx(tr("Per repassar"), M, y); y += 5.5;
   doc.setFontSize(9); doc.setTextColor(...ink);
-  if (!errs.length) { doc.setFont("helvetica", "normal"); tx("Cap error al primer intent. Excel·lent feina!", M, y); y += 6; }
+  if (!errs.length) { doc.setFont("helvetica", "normal"); tx(tr("Cap error al primer intent. Excel·lent feina!"), M, y); y += 6; }
   errs.forEach(e => {
     doc.setFont("helvetica", "bold"); const l1 = doc.splitTextToSize(pdfTxt(`[${e.k}] ${e.q}`), CW);
-    doc.setFont("helvetica", "normal"); const l2 = doc.splitTextToSize(pdfTxt(`Has respost: ${e.given}  ·  Correcte: ${e.correct}`), CW - 4);
+    doc.setFont("helvetica", "normal"); const l2 = doc.splitTextToSize(pdfTxt(tr("Has respost:") + " " + e.given + "  ·  " + tr("Correcte:") + " " + e.correct), CW - 4);
     doc.setFont("helvetica", "italic"); const l3 = doc.splitTextToSize(pdfTxt(e.why), CW - 4);
     need((l1.length + l2.length + l3.length) * 4 + 4);
     doc.setFont("helvetica", "bold"); doc.setTextColor(...ink); doc.text(l1, M, y); y += l1.length * 4;
@@ -1328,7 +1864,7 @@ function buildPdf() {
     doc.setFont("helvetica", "italic"); doc.setTextColor(...grey); doc.text(l3, M + 4, y); y += l3.length * 4 + 2.5;
   });
   // fitxes
-  need(20); y += 2; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx("Fitxes THD consultades", M, y); y += 5.5;
+  need(20); y += 2; doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(...navy); tx(tr("Fitxes THD consultades"), M, y); y += 5.5;
   doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(...ink);
   const fl = doc.splitTextToSize(pdfTxt(FITXES.map(f => (S.fitxes.includes(f.id) ? "[x] " : "[ ] ") + f.nom).join("   ")), CW); need(fl.length * 4.2); doc.text(fl, M, y); y += fl.length * 4.2 + 4;
   footer();
@@ -1339,47 +1875,51 @@ function buildPdf() {
 function openCodex() {
   if (mode === "dialog" || C || B) return;
   const cards = FITXES.map(f => S.fitxes.includes(f.id)
-    ? `<div class="card"><h4>${esc(f.nom)}</h4><div class="eyebrow">${esc(f.en)}</div><dl><dt>Què és</dt><dd>${esc(f.frase)}</dd><dt>Aporta</dt><dd>${esc(f.aporta)}</dd><dt>Pesa</dt><dd>${esc(f.pesa)}</dd><dt>Compte</dt><dd>${esc(f.compte)}</dd></dl></div>`
-    : `<div class="card locked"><h4>???</h4><p>Fitxa no trobada. Pista: ${esc(f.lloc)}.</p></div>`).join("");
+    ? `<div class="card"><h4>${esc(f.nom)}</h4><div class="eyebrow">${esc(f.en)}</div><dl><dt>${tr("Què és")}</dt><dd>${esc(f.frase)}</dd><dt>${tr("Aporta")}</dt><dd>${esc(f.aporta)}</dd><dt>${tr("Pesa")}</dt><dd>${esc(f.pesa)}</dd><dt>${tr("Compte")}</dt><dd>${esc(f.compte)}</dd></dl></div>`
+    : `<div class="card locked"><h4>???</h4><p>${tr("Fitxa no trobada. Pista:")} ${esc(f.lloc)}.</p></div>`).join("");
   const ideas = QUEST_ORDER.filter(k => S.seals[k]).map(k => `<li><b>${k}</b> ${esc(QUESTS[k].idea)}</li>`).join("");
-  modalOpen(`<div class="chal-head"><div><div class="eyebrow">Les teves notes</div><h2>Còdex de les THD</h2></div><button class="btn ghost" id="x" type="button">Tanca</button></div><p>${S.fitxes.length} de 11 fitxes trobades.</p><div class="codex">${cards}</div><h3>Idees clau dels segells</h3>${ideas ? `<ul>${ideas}</ul>` : "<p>Encara no tens cap segell.</p>"}`);
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">${tr("Les teves notes")}</div><h2>${tr("Còdex de les THD")}</h2></div><button class="btn ghost" id="x" type="button">${tr("Tanca")}</button></div><p>${tr("{n} de 11 fitxes trobades.", { n: S.fitxes.length })}</p><div class="codex">${cards}</div><h3>${tr("Idees clau dels segells")}</h3>${ideas ? `<ul>${ideas}</ul>` : "<p>" + tr("Encara no tens cap segell.") + "</p>"}`);
   $("x").onclick = modalClose;
 }
 function openQuests() {
   if (mode === "dialog" || C || B) return;
   const rows = QUEST_ORDER.map(k => { const st = S.stats[k]; const pct = st ? Math.round(100 * st.firstOk / st.total) : null; const l = level(pct);
-    return `<tr><td><b>${k}</b></td><td>${esc(QUESTS[k].nom)}<br><span class="eyebrow">${esc(QUESTS[k].lloc)}</span></td><td>${S.seals[k] ? "Segell aconseguit" : (k === "2.1" && S.fitxes.length < 11 ? `Busca fitxes (${S.fitxes.length}/11)` : "Pendent")}</td><td><span class="lvl ${l.c}">${pct == null ? "—" : pct + "%"}</span></td></tr>`; }).join("");
+    return `<tr><td><b>${k}</b></td><td>${esc(QUESTS[k].nom)}<br><span class="eyebrow">${esc(QUESTS[k].lloc)}</span></td><td>${S.seals[k] ? tr("Segell aconseguit") : (k === "2.1" && S.fitxes.length < 11 ? tr("Busca fitxes ({n}/11)", { n: S.fitxes.length }) : tr("Pendent"))}</td><td><span class="lvl ${l.c}">${pct == null ? "—" : pct + "%"}</span></td></tr>`; }).join("");
   const done = S.boss?.won;
-  modalOpen(`<div class="chal-head"><div><div class="eyebrow">${esc(S.name || "")}${S.group ? " · " + esc(S.group) : ""}</div><h2>Missions</h2></div><button class="btn ghost" id="x" type="button">Tanca</button></div>
-  <div class="tbl-wrap"><table class="res"><thead><tr><th>CA</th><th>Missió</th><th>Estat</th><th>Encerts</th></tr></thead><tbody>${rows}<tr><td><b>Final</b></td><td>Debat contra en Fum<br><span class="eyebrow">Ajuntament (Alcaldessa)</span></td><td>${done ? "Guanyat" : Object.keys(S.seals).length === 7 ? "Disponible" : "Calen els 7 segells"}</td><td>${S.boss?.scored ? `<span class="lvl ${level(results().bossPct).c}">${results().bossPct}%</span>` : "—"}</td></tr></tbody></table></div>
-  <div id="pdfMsg"></div><div class="row" style="margin-top:12px"><button class="btn" id="pdf" type="button" ${done ? "" : "disabled"}>Descarrega l'informe PDF</button>${done ? "" : `<span class="eyebrow">Disponible en guanyar el debat final</span>`}<button class="btn ghost" id="reset" type="button">Nova partida</button></div><div id="confirmReset"></div>`);
+  modalOpen(`<div class="chal-head"><div><div class="eyebrow">${esc(S.name || "")}${S.group ? " · " + esc(S.group) : ""}</div><h2>${tr("Missions")}</h2></div><button class="btn ghost" id="x" type="button">${tr("Tanca")}</button></div>
+  <div class="tbl-wrap"><table class="res"><thead><tr><th>CA</th><th>${tr("Missió")}</th><th>${tr("Estat")}</th><th>${tr("Encerts")}</th></tr></thead><tbody>${rows}<tr><td><b>Final</b></td><td>${tr("Debat contra en Fum")}<br><span class="eyebrow">${tr("Ajuntament (Alcaldessa)")}</span></td><td>${done ? tr("Guanyat") : Object.keys(S.seals).length === 7 ? tr("Disponible") : tr("Calen els 7 segells")}</td><td>${S.boss?.scored ? `<span class="lvl ${level(results().bossPct).c}">${results().bossPct}%</span>` : "—"}</td></tr></tbody></table></div>
+  <div id="pdfMsg"></div><div class="row" style="margin-top:12px"><button class="btn" id="pdf" type="button" ${done ? "" : "disabled"}>${tr("Descarrega l'informe PDF")}</button>${done ? "" : `<span class="eyebrow">${tr("Disponible en guanyar el debat final")}</span>`}<button class="btn ghost" id="reset" type="button">${tr("Nova partida")}</button></div><div id="confirmReset"></div>`);
   $("x").onclick = modalClose; if (done) $("pdf").onclick = makePdf;
-  $("reset").onclick = () => { $("confirmReset").innerHTML = `<div class="fb ko">Segur? Es perdrà la partida d'aquest navegador. <button class="btn" id="yes" type="button">Sí, comença de nou</button></div>`; $("yes").onclick = () => { clearSave(); location.reload(); }; };
+  $("reset").onclick = () => { $("confirmReset").innerHTML = `<div class="fb ko">${tr("Segur? Es perdrà la partida d'aquest navegador.")} <button class="btn" id="yes" type="button">${tr("Sí, comença de nou")}</button></div>`; $("yes").onclick = () => { clearSave(); location.reload(); }; };
 }
 
 /* ================= TITLE ================= */
 function titleScreen() {
   const saved = load();
   mode = "title";
-  modalOpen(`<div class="title-grid"><div><div class="eyebrow">MP 1665 · RA2 · Tecnologies habilitadores digitals</div><div class="logo">ELS SEGELLS<br>DE VILABIT</div>
-  <p>En Fum, un venedor de «tecnologia miraculosa», vol enredar tot el poble. Ajuda els veïns, troba les 11 fitxes de les THD, guanya els <b>set segells</b> i desmunta els seus trucs a l'assemblea.</p>
-  <p class="keys"><kbd>←↑↓→</kbd> o <kbd>WASD</kbd> per moure't · <kbd>Espai</kbd> per parlar i mirar · <kbd>C</kbd> Còdex · <kbd>Q</kbd> Missions</p></div>
+  const keepName = $("fName") ? $("fName").value : "", keepGroup = $("fGroup") ? $("fGroup").value : "";
+  modalOpen(`<div class="title-grid"><div><div class="langs" role="group" aria-label="Idioma / Idioma"><button type="button" class="lang ${LANG === "ca" ? "on" : ""}" data-l="ca" aria-pressed="${LANG === "ca"}">Català</button><button type="button" class="lang ${LANG === "es" ? "on" : ""}" data-l="es" aria-pressed="${LANG === "es"}">Castellano</button></div>
+  <div class="eyebrow">${tr("MP 1665 · RA2 · Tecnologies habilitadores digitals")}</div><div class="logo">${tr("ELS SEGELLS<br>DE VILABIT")}</div>
+  <p>${tr("En Fum, un venedor de «tecnologia miraculosa», vol enredar tot el poble. Ajuda els veïns, troba les 11 fitxes de les THD, guanya els <b>set segells</b> i desmunta els seus trucs a l'assemblea.")}</p>
+  <p class="keys"><kbd>←↑↓→</kbd> ${tr("o")} <kbd>WASD</kbd> ${tr("per moure't")} · <kbd>${tr("Espai")}</kbd> ${tr("per parlar i mirar")} · <kbd>C</kbd> ${tr("Còdex")} · <kbd>Q</kbd> ${tr("Missions")}</p></div>
   <div style="display:grid;gap:12px"><canvas class="title-art" id="tart" width="320" height="192"></canvas>
-  ${saved && saved.introDone ? `<div class="fb">Hi ha una partida desada de <b>${esc(saved.name || "sense nom")}</b> (${Object.keys(saved.seals || {}).length}/7 segells).</div><div class="row"><button class="btn" id="cont" type="button">Continua la partida</button><button class="btn ghost" id="new" type="button">Partida nova</button></div>` : ""}
+  ${saved && saved.introDone ? `<div class="fb">${tr("Hi ha una partida desada de")} <b>${esc(saved.name || tr("sense nom"))}</b> (${Object.keys(saved.seals || {}).length}/7 ${tr("segells")}).</div><div class="row"><button class="btn" id="cont" type="button">${tr("Continua la partida")}</button><button class="btn ghost" id="new" type="button">${tr("Partida nova")}</button></div>` : ""}
   <form id="startF" ${saved && saved.introDone ? "hidden" : ""} style="display:grid;gap:10px">
-   <div class="field"><label for="fName">Nom i cognom (sortirà a l'informe PDF)</label><input id="fName" maxlength="60" autocomplete="name" required></div>
-   <div class="field"><label for="fGroup">Grup</label><select id="fGroup"><option value="">Tria el grup</option>${["AFI1", "CI1", "GAT1", "MK1A", "MK1B", "TR1", "Altres"].map(g => `<option>${g}</option>`).join("")}</select></div>
-   <div id="fErr"></div><button class="btn" type="submit">Comença l'aventura</button></form></div></div>`);
+   <div class="field"><label for="fName">${tr("Nom i cognom (sortirà a l'informe PDF)")}</label><input id="fName" maxlength="60" autocomplete="name" required></div>
+   <div class="field"><label for="fGroup">${tr("Grup")}</label><select id="fGroup"><option value="">${tr("Tria el grup")}</option>${["AFI1", "CI1", "GAT1", "MK1A", "MK1B", "TR1"].map(g => `<option value="${g}">${g}</option>`).join("")}<option value="Altres">${tr("Altres")}</option></select></div>
+   <div id="fErr"></div><button class="btn" type="submit">${tr("Comença l'aventura")}</button></form></div></div>`);
+  $("fName").value = keepName; $("fGroup").value = keepGroup;
+  $("win").querySelectorAll(".lang").forEach(b => b.onclick = () => { if (b.dataset.l !== LANG) { setLang(b.dataset.l); titleScreen(); } });
   drawTitleArt();
   if (saved && saved.introDone) {
-    $("cont").onclick = () => { S = Object.assign(newState(), saved); restorePlayer(); startPlay(false); };
+    $("cont").onclick = () => { S = Object.assign(newState(), saved); S.lang = LANG; restorePlayer(); startPlay(false); };
     $("new").onclick = () => { $("startF").hidden = false; $("fName").focus(); };
-  } else setTimeout(() => $("fName").focus(), 50);
+  } else if (!isTouch) setTimeout(() => $("fName") && $("fName").focus(), 50);
   $("startF").onsubmit = (e) => {
     e.preventDefault();
     const name = $("fName").value.trim(), group = $("fGroup").value;
-    if (!name) { $("fErr").innerHTML = `<div class="fb ko">Escriu el teu nom: sortirà a l'informe que lliuraràs.</div>`; return; }
-    S = newState(); S.name = name; S.group = group; S.started = Date.now(); restorePlayer(); startPlay(true);
+    if (!name) { $("fErr").innerHTML = `<div class="fb ko">${tr("Escriu el teu nom: sortirà a l'informe que lliuraràs.")}</div>`; return; }
+    S = newState(); S.name = name; S.group = group; S.lang = LANG; S.started = Date.now(); restorePlayer(); startPlay(true);
   };
 }
 function drawTitleArt() {
@@ -1393,13 +1933,13 @@ function startPlay(fresh) {
   modalClose(); hud(); save();
   if (fresh || !S.introDone) {
     say([
-      { who: "ada", text: "{nom}, benvingut/da a Vilabit! Sóc l'Ada, consultora de transformació digital." },
-      { who: "ada", text: "Aquí tot es fa a mà... i ha arribat en Fum, un venedor que vol vendre «tecnologia miraculosa» a tothom." },
-      { who: "fum", text: "Blockchain per a la fleca! IA que ho fa tot sola! Compreu, compreu!" },
-      { who: "ada", text: "A l'assemblea de l'Ajuntament podràs desmuntar els seus trucs. Però l'Alcaldessa demana els set Segells del Consell Digital." },
-      { who: "ada", text: "Cada segell el dona un veí quan l'ajudes amb una part de les tecnologies habilitadores digitals, les THD. Els veïns que t'esperen porten un «!» groc." },
-      { who: "ada", text: "Comença per les 11 fitxes brillants escampades pel poble, una per cada THD. Quan les tinguis totes, torna amb mi." },
-      { who: "ada", text: "Fletxes o WASD per moure't, Espai per parlar i mirar objectes. C obre el Còdex amb el que has après i Q, les missions. Som-hi!" }
+      { who: "ada", text: tr("{nom}, benvingut/da a Vilabit! Sóc l'Ada, consultora de transformació digital.") },
+      { who: "ada", text: tr("Aquí tot es fa a mà... i ha arribat en Fum, un venedor que vol vendre «tecnologia miraculosa» a tothom.") },
+      { who: "fum", text: tr("Blockchain per a la fleca! IA que ho fa tot sola! Compreu, compreu!") },
+      { who: "ada", text: tr("A l'assemblea de l'Ajuntament podràs desmuntar els seus trucs. Però l'Alcaldessa demana els set Segells del Consell Digital.") },
+      { who: "ada", text: tr("Cada segell el dona un veí quan l'ajudes amb una part de les tecnologies habilitadores digitals, les THD. Els veïns que t'esperen porten un «!» groc.") },
+      { who: "ada", text: tr("Comença per les 11 fitxes brillants escampades pel poble, una per cada THD. Quan les tinguis totes, torna amb mi.") },
+      { who: "ada", text: tr("Fletxes o WASD per moure't, Espai per parlar i mirar objectes. C obre el Còdex amb el que has après i Q, les missions. Som-hi!") }
     ], () => { S.introDone = true; save(); });
   }
 }
@@ -1445,10 +1985,29 @@ $("bA").addEventListener("click", () => { if (mode === "dialog") advance(); else
 $("dialog").addEventListener("click", e => { if (e.target.tagName === "BUTTON") return; if (D && D.full && D.pages[D.i].choices) return; advance(); });
 $("bCodex").onclick = () => { if (mode === "play") openCodex(); };
 $("bQuests").onclick = () => { if (mode === "play") openQuests(); };
-$("bSound").onclick = () => { sound = !sound; $("bSound").textContent = "So: " + (sound ? "sí" : "no"); $("bSound").setAttribute("aria-pressed", String(sound)); };
+$("bSound").onclick = () => { sound = !sound; applyStatic(); $("bSound").setAttribute("aria-pressed", String(sound)); };
+$("bLang").onclick = () => { if (mode !== "play") return; setLang(LANG === "ca" ? "es" : "ca"); S.lang = LANG; save(); toast(tr("Idioma: català")); };
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.title = tr("Els Segells de Vilabit");
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = tr(el.dataset.t); });
+  document.querySelectorAll("[data-tt]").forEach(el => { el.title = tr(el.dataset.tt); });
+  document.querySelectorAll("[data-ta]").forEach(el => { el.setAttribute("aria-label", tr(el.dataset.ta)); });
+  $("bSound").textContent = tr(sound ? "So: sí" : "So: no");
+  $("bLang").textContent = LANG === "ca" ? "ES" : "CA";
+  $("bLang").title = LANG === "ca" ? "Jugar en castellano" : "Jugar en català";
+}
+function setLang(l) {
+  LANG = l === "es" ? "es" : "ca"; setData(LANG); refreshRefs();
+  try { localStorage.setItem("vilabit-lang", LANG); } catch (e) { }
+  renderMap(); hud();
+}
 
 /* ================= BOOT ================= */
 function start(hotData) {
+  let l0 = "ca"; try { l0 = localStorage.getItem("vilabit-lang") || ((navigator.language || "").toLowerCase().startsWith("es") ? "es" : "ca"); } catch (e) { }
+  const sv = (hotData && hotData.S) || load(); if (sv && sv.lang) l0 = sv.lang;
+  LANG = l0 === "es" ? "es" : "ca"; setData(LANG); refreshRefs();
   renderMap();
   initDownloads();
   if (hotData && hotData.S && hotData.S.introDone) { S = Object.assign(newState(), hotData.S); restorePlayer(); modalClose(); hud(); }
@@ -1460,6 +2019,6 @@ function start(hotData) {
 }
 try { window.claude?.hot?.snapshot?.(() => ({ S })); } catch (e) { }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
-window.__vilabit = { get S() { return S; }, QUESTS, openChallenge, openBoss, buildPdf, results, talk, npcById, pl, walkable, map, FITXES, OBJECTS, NPCS, BUILDINGS };
+window.__vilabit = { get S() { return S; }, get QUESTS() { return QUESTS; }, get FITXES() { return FITXES; }, get BOSS() { return BOSS; }, get LANG() { return LANG; }, setLang, openChallenge, openBoss, buildPdf, results, talk, npcById, pl, walkable, map, OBJECTS, NPCS, BUILDINGS };
 
 </script>
